@@ -1,0 +1,6 @@
+{
+  "name": "Aplikasi Administrasi Guru",
+  "description": "Sistem Administrasi Guru Berbasis Web terintegrasi Google Sheets, Google Apps Script, Modul Ajar Deep Learning AI, Rekap Absen, Nilai Bulk, Kalender Pendidikan, Prota/Promes, dan Bimbingan Konseling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

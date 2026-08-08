@@ -1,0 +1,314 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #F5F7FA;
+  --color-brand-secondary: #5B53A2;
+  --color-brand-accent: #56A4B3;
+  --color-brand-background: #F5F1F8;
+  --color-brand-text: #1A2825;
+}
+
+@variant dark (&:where(.dark, .dark *));
+
+.dark {
+  --color-brand-primary: #5A057B;
+  --color-brand-secondary: #23042F;
+  --color-brand-accent: #8F25B7;
+  --color-brand-background: #F6F1F8;
+  --color-brand-text: #241A28;
+}
+
+/* Base Body Styles */
+body {
+  background-color: var(--color-brand-background);
+  color: var(--color-brand-text);
+}
+
+.dark body {
+  background-color: #23042F !important; /* brand-secondary */
+  color: #F6F1F8 !important; /* brand-background */
+}
+
+/* Ensure white cards & containers adapt seamlessly in Dark Mode using brand palette */
+.dark .bg-white {
+  background-color: #320743 !important;
+  color: #F6F1F8 !important;
+}
+
+.dark .bg-slate-900,
+.dark .bg-slate-950 {
+  background-color: #23042F !important;
+  color: #F6F1F8 !important;
+}
+
+.dark .bg-slate-800 {
+  background-color: #3C0951 !important;
+  color: #F6F1F8 !important;
+}
+
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-slate-100/50,
+.dark .bg-slate-50/50,
+.dark .bg-slate-50/60 {
+  background-color: #2A0439 !important;
+  color: #F6F1F8 !important;
+}
+
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 {
+  color: #F6F1F8 !important;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500 {
+  color: #E6D8EE !important;
+}
+
+.dark .text-slate-400 {
+  color: #CDAEDD !important;
+}
+
+.dark .border-slate-800,
+.dark .border-slate-700,
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-slate-300 {
+  border-color: #5A057B !important; /* brand-primary */
+}
+
+/* Fix select option, inputs & dropdown menu colors in dark mode */
+.dark option {
+  background-color: #23042F !important;
+  color: #F6F1F8 !important;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #3C0951 !important;
+  color: #F6F1F8 !important;
+  border-color: #8F25B7 !important;
+}
+
+.dark .bg-white\/80,
+.dark .bg-white\/90,
+.dark .bg-white\/95 {
+  background-color: rgba(35, 4, 47, 0.95) !important;
+  color: #F6F1F8 !important;
+}
+
+/* Ensure document preview paper inside PrintModal retains crisp white paper with dark text in dark mode */
+.dark .printable-area {
+  background-color: #ffffff !important;
+  color: #1a2825 !important;
+}
+
+.dark .printable-area * {
+  color: #1a2825 !important;
+}
+
+.dark .printable-area .bg-slate-50,
+.dark .printable-area .bg-slate-100,
+.dark .printable-area .bg-indigo-50,
+.dark .printable-area .bg-amber-50,
+.dark .printable-area .bg-emerald-50 {
+  background-color: #f8fafc !important;
+  color: #1a2825 !important;
+}
+
+/* Ensure minimum 12px legible font size across menus, tables & inputs */
+.text-\[9px\],
+.text-\[10px\],
+.text-\[11px\] {
+  font-size: 0.75rem !important; /* 12px minimum */
+  line-height: 1rem !important;
+}
+
+.dark table thead tr {
+  background-color: #5A057B !important; /* brand-primary */
+  color: #F6F1F8 !important;
+}
+
+.dark table tbody tr:hover {
+  background-color: #480663 !important;
+}
+
+/* Global Print Styles for Clean Multi-Page Document Printing */
+@media print {
+  /* When PrintModal is active, strictly hide all non-print-overlay siblings in the app layout */
+  body.print-modal-open #root > div > *:not(.print-overlay),
+  body.is-printing #root > div > *:not(.print-overlay),
+  body:has(.print-overlay) #root > div > *:not(.print-overlay) {
+    display: none !important;
+  }
+
+  /* Reset html, body, #root, and main wrapper for standard print document flow */
+  html, body, #root, #root > div {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Reset modal overlay for clean standard document flow */
+  .print-overlay {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    display: block !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
+  .print-dialog {
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure all wrappers inside print-dialog expand naturally without height constraints or scrollbars */
+  .print-dialog > div,
+  .print-dialog div {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Page break rules for multi-page documents (e.g. Prota, Promes, Teaching Modules) */
+  .print-page-breaks-active .page-break,
+  .print-page-breaks-active .break-after-page,
+  .print-page-breaks-active [data-page-break="true"] {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .printable-area,
+  .area-cetak-pdf,
+  #area-cetak {
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  .printable-area *,
+  .area-cetak-pdf *,
+  #area-cetak * {
+    visibility: visible !important;
+    color: #000000 !important;
+  }
+
+  /* Strictly hide all no-print controls, headers, toolbars, buttons, sidebars */
+  .no-print,
+  .no-print *,
+  header,
+  aside,
+  nav,
+  button {
+    display: none !important;
+  }
+
+  /* Reset html & body for printing - eliminate initial empty page spacing */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Force all internal containers, tables, and wrappers to expand without scrollbars or clipped heights */
+  .printable-area div,
+  .printable-area section,
+  .printable-area main,
+  .printable-area table,
+  .printable-area tbody,
+  .printable-area tr,
+  .printable-area td,
+  .printable-area th {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Table layout optimization - fit full width and wrap cells so content is never cut off */
+  table {
+    page-break-inside: auto;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+  }
+
+  th, td {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  .break-inside-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}
+
+
+
