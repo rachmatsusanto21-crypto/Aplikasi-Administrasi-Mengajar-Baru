@@ -86,13 +86,19 @@ export const BackupModal: React.FC<BackupModalProps> = ({
     try {
       const res = await fetch("/api/backup/list");
       if (res.ok) {
-        const json = await res.json();
-        if (json.backups) {
+        const text = await res.text();
+        let json: any = null;
+        try {
+          json = JSON.parse(text);
+        } catch (e) {
+          // Response is non-JSON (e.g. 404 HTML page on static host)
+        }
+        if (json && json.backups) {
           setServerBackups(json.backups);
         }
       }
     } catch (e) {
-      console.error("Gagal membaca folder backup server:", e);
+      console.warn("Folder backup server tidak terjangkau (404/offline):", e);
     } finally {
       setLoadingServerList(false);
     }
@@ -120,7 +126,20 @@ export const BackupModal: React.FC<BackupModalProps> = ({
       try {
         json = JSON.parse(rawText);
       } catch (pErr) {
-        // Response is not JSON (likely Google Login/Permission HTML page)
+        // Response is not JSON (likely 404, Vercel page, or Google Login/Permission HTML page)
+        if (
+          rawText.includes("NOT_FOUND") ||
+          rawText.includes("The page could not be found") ||
+          res.status === 404
+        ) {
+          setActionMessage({
+            type: "error",
+            text: `❌ URL Web App tidak dapat dijangkau (Status 404 / Halaman tidak ditemukan).
+Pastikan URL Web App diisi dengan URL Google Apps Script yang valid (berawalan https://script.google.com/macros/s/.../exec) dan diset ke 'Siapa saja' (Anyone).`,
+          });
+          return;
+        }
+
         if (
           rawText.includes("DriveApp") ||
           rawText.includes("authorization") ||
@@ -226,10 +245,25 @@ Di editor Google Apps Script:
       try {
         json = JSON.parse(responseText);
       } catch (err) {
-        if (res.status === 413) {
-          throw new Error("Ukuran data backup terlalu besar melebihi batas server (413).");
+        if (res.status === 404 || responseText.includes("NOT_FOUND")) {
+          setActionMessage({
+            type: "error",
+            text: "⚠️ Endpoint server lokal tidak merespons API /api/backup/upload (Status 404). Gunakan tab 'Cloud Google Drive Folder' atau tombol 'Unduh Langsung' untuk membuat cadangan.",
+          });
+          return;
         }
-        throw new Error(`Server merespons dengan status ${res.status}: ${responseText.slice(0, 100)}`);
+        if (res.status === 413) {
+          setActionMessage({
+            type: "error",
+            text: "Ukuran data backup terlalu besar melebihi batas server (413). Gunakan tombol 'Unduh Langsung'.",
+          });
+          return;
+        }
+        setActionMessage({
+          type: "error",
+          text: `Server merespons dengan status ${res.status}: ${responseText.slice(0, 100)}`,
+        });
+        return;
       }
 
       if (res.ok && json.status === "success") {
@@ -254,7 +288,7 @@ Di editor Google Apps Script:
     }
   };
 
-  // 2. Upload file JSON from computer into dedicated server backup folder
+  // 2. Upload file JSON from computer into dedicated server backup folder & restore data
   const handleUploadFileToServerBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -268,48 +302,61 @@ Di editor Google Apps Script:
         const contentStr = event.target?.result as string;
         const parsed = JSON.parse(contentStr);
 
-        const res = await fetch("/api/backup/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename: file.name,
-            rawJson: parsed,
-          }),
-        });
-
-        let json: any = {};
-        const responseText = await res.text();
-        try {
-          json = JSON.parse(responseText);
-        } catch (err) {
-          if (res.status === 413) {
-            throw new Error("Ukuran file backup terlalu besar melebihi batas server (413).");
-          }
-          throw new Error(`Server merespons dengan status ${res.status}: ${responseText.slice(0, 100)}`);
+        // ALWAYS restore data immediately to local state and storage
+        if (onRestoreData) {
+          onRestoreData(parsed);
         }
 
-        if (res.ok && json.status === "success") {
-          if (onRestoreData) {
-            onRestoreData(parsed);
+        let serverSaved = false;
+        let serverErrorMsg = "";
+
+        try {
+          const res = await fetch("/api/backup/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename: file.name,
+              rawJson: parsed,
+            }),
+          });
+
+          const responseText = await res.text();
+          let json: any = null;
+          try {
+            json = JSON.parse(responseText);
+          } catch {
+            // Not JSON (e.g. 404 page)
           }
+
+          if (res.ok && json && json.status === "success") {
+            serverSaved = true;
+          } else if (json && json.error) {
+            serverErrorMsg = json.error;
+          }
+        } catch (serverErr) {
+          console.warn("Tautan server backup tidak dapat dijangkau:", serverErr);
+        }
+
+        if (serverSaved) {
           setActionMessage({
             type: "success",
-            text: `✅ File ${file.name} berhasil diunggah, disimpan ke Folder Backup, dan SELURUH DATA (Modul Ajar, Soal & Kisi-Kisi, dll) berhasil direstore ke aplikasi!`,
+            text: `✅ File "${file.name}" BERHASIL DIRESTORE KE APLIKASI dan tersimpan di Folder Backup Server!`,
           });
           fetchServerBackups();
         } else {
           setActionMessage({
-            type: "error",
-            text: `❌ Gagal mengunggah file backup: ${json.error || json.message}`,
+            type: "success",
+            text: `✅ File "${file.name}" BERHASIL DIRESTORE KE APLIKASI! (Seluruh data Modul Ajar, Soal & Kisi-kisi, Nilai, dll sudah berhasil dipulihkan). ${serverErrorMsg ? `Note: ${serverErrorMsg}` : ""}`,
           });
         }
       } catch (err: any) {
         setActionMessage({
           type: "error",
-          text: `❌ Gagal mengunggah file backup: ${err.message || err}`,
+          text: `❌ File backup tidak dapat dibaca: ${err.message || err}. Pastikan file dalam format JSON yang valid.`,
         });
       } finally {
         setIsSyncing(false);
+        if (e.target) e.target.value = "";
       }
     };
     reader.readAsText(file);
@@ -317,10 +364,18 @@ Di editor Google Apps Script:
 
   // 3. Upload current data to Cloud Google Drive folder
   const handleUploadToCloudDrive = async () => {
-    if (!webAppUrl) {
+    if (!webAppUrl || !webAppUrl.trim()) {
       setActionMessage({
         type: "error",
-        text: "URL Google Apps Script belum diatur. Silakan atur URL Web App terlebih dahulu.",
+        text: "URL Google Apps Script belum diatur. Silakan atur URL Web App terlebih dahulu di tab 'Panduan & Script'.",
+      });
+      return;
+    }
+
+    if (!webAppUrl.includes("script.google.com/macros/s/")) {
+      setActionMessage({
+        type: "error",
+        text: "⚠️ URL Web App tidak valid. URL Google Apps Script harus berawalan 'https://script.google.com/macros/s/.../exec'. Silakan periksa kembali URL di tab 'Panduan & Script'.",
       });
       return;
     }
@@ -360,6 +415,19 @@ Di editor Google Apps Script:
       }
 
       if (!result) {
+        if (
+          rawText.includes("NOT_FOUND") ||
+          rawText.includes("The page could not be found") ||
+          res.status === 404
+        ) {
+          setActionMessage({
+            type: "error",
+            text: `❌ URL Google Apps Script tidak dapat dijangkau (Status 404 / Halaman tidak ditemukan).
+Pastikan URL Web App diisi dengan URL Google Apps Script yang tepat (berawalan https://script.google.com/macros/s/.../exec) dan diset ke 'Siapa saja' (Anyone).`,
+          });
+          return;
+        }
+
         if (
           rawText.includes("DriveApp") ||
           rawText.includes("izin") ||

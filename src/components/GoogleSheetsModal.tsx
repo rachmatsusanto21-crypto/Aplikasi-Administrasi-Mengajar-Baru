@@ -178,7 +178,14 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
             setSyncStatus(`⚠️ Respon Apps Script: ${json.message || json.error || "Gagal sinkronisasi"}`);
           }
         } catch {
-          if (textResponse.includes("<!DOCTYPE") || textResponse.includes("<html") || textResponse.startsWith("The page")) {
+          if (
+            textResponse.includes("NOT_FOUND") ||
+            textResponse.includes("The page could not be found") ||
+            res.status === 404
+          ) {
+            setSyncStatus("❌ Gagal (Status 404 / Halaman Tidak Ditemukan): URL Web App Google Apps Script tidak valid atau belum dipublikasikan. Pastikan URL berawalan 'https://script.google.com/macros/s/...' dan berakhiran '/exec'.");
+            setShowTroubleshooting(true);
+          } else if (textResponse.includes("<!DOCTYPE") || textResponse.includes("<html") || textResponse.startsWith("The page")) {
             setSyncStatus("❌ Gagal: Google Apps Script mengembalikan halaman HTML/Login. Buka panduan Solusi di bawah!");
             setShowTroubleshooting(true);
           } else {
