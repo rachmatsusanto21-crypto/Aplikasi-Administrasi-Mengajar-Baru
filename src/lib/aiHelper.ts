@@ -29,12 +29,16 @@ export async function generateAIContent({
     targetModel = "gemini-3.6-flash";
   }
 
-  // Get saved API key from localStorage if available
-  const savedSettings = loadStoredData<any>(STORAGE_KEYS.AI_SETTINGS, {});
+  // Get saved API key from localStorage if available (checking both STORAGE_KEYS and legacy key)
+  const savedSettings1 = loadStoredData<any>(STORAGE_KEYS.AI_SETTINGS, {});
+  const savedSettings2 = loadStoredData<any>("aiSettings", {});
   const effectiveApiKey =
     manualApiKey ||
-    savedSettings?.apiKey ||
-    savedSettings?.manualApiKey ||
+    savedSettings1?.manualApiKey ||
+    savedSettings1?.apiKey ||
+    savedSettings2?.manualApiKey ||
+    savedSettings2?.apiKey ||
+    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
     undefined;
 
   // 1. Try Backend API Route first

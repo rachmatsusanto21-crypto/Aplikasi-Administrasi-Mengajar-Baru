@@ -43,7 +43,7 @@ import {
   INITIAL_USERS,
   INITIAL_CANVA_TEMPLATES,
 } from "./data/initialData";
-import { loadFromStorage, saveToStorage } from "./lib/storage";
+import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "./lib/storage";
 import { usePrintHandler } from "./hooks/usePrintHandler";
 
 // Components
@@ -183,7 +183,9 @@ export default function App() {
     });
   };
   const [aiSettings, setAiSettings] = useState<AISettings>(() => {
-    const loaded = loadFromStorage("aiSettings", INITIAL_AI_SETTINGS);
+    const loaded1 = loadFromStorage(STORAGE_KEYS.AI_SETTINGS, null);
+    const loaded2 = loadFromStorage("aiSettings", null);
+    const loaded = loaded1 || loaded2 || INITIAL_AI_SETTINGS;
     return {
       ...INITIAL_AI_SETTINGS,
       ...(loaded && typeof loaded === "object" ? loaded : {}),
@@ -344,6 +346,7 @@ export default function App() {
 
   useEffect(() => {
     saveToStorage("aiSettings", aiSettings);
+    saveToStorage(STORAGE_KEYS.AI_SETTINGS, aiSettings);
   }, [aiSettings]);
 
   useEffect(() => {
@@ -888,6 +891,7 @@ export default function App() {
                 subjects={subjects}
                 schoolIdentity={schoolIdentity}
                 onOpenPrintModal={handleOpenPrint}
+                aiSettings={aiSettings}
               />
             )}
 
@@ -898,6 +902,7 @@ export default function App() {
                 schoolIdentity={schoolIdentity}
                 canvaTemplates={canvaTemplates}
                 onSaveCanvaTemplates={handleSaveCanvaTemplates}
+                aiSettings={aiSettings}
               />
             )}
           </main>

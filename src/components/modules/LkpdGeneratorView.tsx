@@ -23,7 +23,7 @@ import {
   Eye,
   Search,
 } from "lucide-react";
-import { SchoolIdentity, CPTPItem, LkpdPackage } from "../../types";
+import { SchoolIdentity, CPTPItem, LkpdPackage, AISettings } from "../../types";
 import { generateAIContent } from "../../lib/aiHelper";
 import { KopSurat } from "../KopSurat";
 import { exportTableToExcelFormat } from "../../lib/exportExcel";
@@ -35,6 +35,7 @@ interface LkpdGeneratorViewProps {
   schoolIdentity?: SchoolIdentity;
   initialSelectedTopic?: string;
   onOpenPrintModal?: (title: string, subtitle: string, content: React.ReactNode) => void;
+  aiSettings?: AISettings;
 }
 
 export const LkpdGeneratorView: React.FC<LkpdGeneratorViewProps> = ({
@@ -43,6 +44,7 @@ export const LkpdGeneratorView: React.FC<LkpdGeneratorViewProps> = ({
   schoolIdentity,
   initialSelectedTopic = "",
   onOpenPrintModal,
+  aiSettings,
 }) => {
   const [activeTab, setActiveTab] = useState<"generator" | "history">("generator");
 
@@ -129,6 +131,7 @@ Hasilkan keluaran JSON valid dengan struktur:
       const response = await generateAIContent({
         prompt,
         systemInstruction: "Anda adalah Pakar Kurikulum Merdeka & Penulis LKPD Profesional SD/SMP. Hasilkan format JSON valid.",
+        manualApiKey: aiSettings?.manualApiKey,
       });
 
       let parsed: any = null;

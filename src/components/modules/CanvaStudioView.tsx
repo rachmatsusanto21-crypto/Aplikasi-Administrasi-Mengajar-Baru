@@ -36,7 +36,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import pptxgen from "pptxgenjs";
-import { CanvaTemplateItem, CPTPItem, SchoolIdentity, MediaBananaItem, MediaBananaSlide } from "../../types";
+import { CanvaTemplateItem, CPTPItem, SchoolIdentity, MediaBananaItem, MediaBananaSlide, AISettings } from "../../types";
 import { generateAIContent } from "../../lib/aiHelper";
 import { STORAGE_KEYS, loadStoredData, saveStoredData } from "../../lib/storage";
 
@@ -47,6 +47,7 @@ interface CanvaStudioViewProps {
   canvaTemplates?: CanvaTemplateItem[];
   onSaveCanvaTemplates?: (updated: CanvaTemplateItem[]) => void;
   initialSelectedTopic?: string;
+  aiSettings?: AISettings;
 }
 
 export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
@@ -56,6 +57,7 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
   canvaTemplates = [],
   onSaveCanvaTemplates,
   initialSelectedTopic = "",
+  aiSettings,
 }) => {
   const [activeTab, setActiveTab] = useState<"ai_banana" | "nano_image_studio" | "omni_video_studio" | "history" | "gallery" | "embed_preview">("ai_banana");
 
@@ -244,6 +246,7 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
         prompt: effectivePrompt,
         systemInstruction: systemPrompt,
         model: selectedAiEngine === "nano_banana_2" ? "gemini-3.6-flash" : selectedAiEngine === "gemini_omni" ? "gemini-3.6-flash" : "gemini-3.6-flash",
+        manualApiKey: aiSettings?.manualApiKey,
       });
 
       let parsed: any = null;
@@ -405,6 +408,7 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
         prompt: promptToUse,
         systemInstruction,
         model: "gemini-3.6-flash",
+        manualApiKey: aiSettings?.manualApiKey,
       });
 
       let parsed: any = null;
@@ -465,6 +469,7 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
         prompt: promptToUse,
         systemInstruction,
         model: "gemini-3.6-flash",
+        manualApiKey: aiSettings?.manualApiKey,
       });
 
       let parsed: any = null;
