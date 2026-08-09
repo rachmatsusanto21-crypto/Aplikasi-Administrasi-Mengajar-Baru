@@ -57,7 +57,11 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
   onSaveCanvaTemplates,
   initialSelectedTopic = "",
 }) => {
-  const [activeTab, setActiveTab] = useState<"ai_banana" | "history" | "gallery" | "embed_preview">("ai_banana");
+  const [activeTab, setActiveTab] = useState<"ai_banana" | "nano_image_studio" | "omni_video_studio" | "history" | "gallery" | "embed_preview">("ai_banana");
+
+  // AI Model Engine Selection & Diagnostics
+  const [selectedAiEngine, setSelectedAiEngine] = useState<"nano_banana_2" | "gemini_omni" | "gemini_flash">("nano_banana_2");
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   // AI Banana Form Parameters
   const [subject, setSubject] = useState<string>(subjects[0] || "Bahasa Indonesia");
@@ -66,6 +70,37 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
   const [mediaType, setMediaType] = useState<"gambar" | "video_animasi" | "slide_interaktif">("slide_interaktif");
   const [styleTheme, setStyleTheme] = useState<string>("Warna Ceria & Minimalis Edukatif");
   const [userPromptText, setUserPromptText] = useState<string>("");
+
+  // Nano Banana 2 Image Studio State
+  const [nanoImagePrompt, setNanoImagePrompt] = useState<string>("");
+  const [nanoImageStyle, setNanoImageStyle] = useState<string>("Infografis Vektor Edukatif 3D");
+  const [isGeneratingNanoImage, setIsGeneratingNanoImage] = useState<boolean>(false);
+  const [nanoImageError, setNanoImageError] = useState<string | null>(null);
+  const [generatedNanoImageData, setGeneratedNanoImageData] = useState<{
+    title: string;
+    visualPrompt: string;
+    colorPalette: string[];
+    layoutDescription: string;
+    suggestedCaptions: string[];
+  } | null>(null);
+
+  // Gemini Omni Video Studio State
+  const [omniVideoPrompt, setOmniVideoPrompt] = useState<string>("");
+  const [omniVideoDuration, setOmniVideoDuration] = useState<string>("30 Detik (Animasi Singkat)");
+  const [isGeneratingOmniVideo, setIsGeneratingOmniVideo] = useState<boolean>(false);
+  const [omniVideoError, setOmniVideoError] = useState<string | null>(null);
+  const [generatedOmniVideoData, setGeneratedOmniVideoData] = useState<{
+    title: string;
+    narrationScript: string;
+    bgmRecommendation: string;
+    keyframes: {
+      frameNumber: number;
+      title: string;
+      description: string;
+      cameraMovement: string;
+      voiceover: string;
+    }[];
+  } | null>(null);
 
   // AI Generation Loading State & Result
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -96,6 +131,69 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
   const [embedUrlInput, setEmbedUrlInput] = useState<string>("");
   const [activeEmbedUrl, setActiveEmbedUrl] = useState<string>("");
 
+  // Speech Synthesis Helper for Voiceover Narration
+  const handleSpeakNarration = (text: string) => {
+    if (!('speechSynthesis' in window)) {
+      alert("Browser Anda tidak mendukung fitur Text-to-Speech.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "id-ID";
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Download SVG Infographic Graphic Helper
+  const handleDownloadInfographicSVG = (item: MediaBananaItem) => {
+    const pointsList = item.slides?.[0]?.points || [
+      `Topik utama: ${item.materiTopic}`,
+      `Mata Pelajaran: ${item.subject}`,
+      `Media Ajar Olahan Nano Banana 2`
+    ];
+
+    const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+      <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
+          <stop offset="50%" style="stop-color:#d97706;stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#059669;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="800" height="600" rx="30" fill="url(#grad1)" />
+      <rect x="30" y="30" width="740" height="540" rx="20" fill="#ffffff" opacity="0.96" />
+      
+      <rect x="50" y="50" width="700" height="85" rx="15" fill="#fef3c7" />
+      <text x="70" y="82" font-family="sans-serif" font-size="13" font-weight="bold" fill="#b45309">INFOGRAFIS HASIL OLAHAN NANO BANANA 2</text>
+      <text x="70" y="112" font-family="sans-serif" font-size="22" font-weight="900" fill="#1e293b">${item.materiTopic.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</text>
+
+      <text x="70" y="162" font-family="sans-serif" font-size="14" font-weight="bold" fill="#475569">Mata Pelajaran: ${item.subject} | ${item.targetGrade}</text>
+      <text x="70" y="187" font-family="sans-serif" font-size="12" fill="#64748b">Gaya Visual: ${item.styleTheme}</text>
+
+      <rect x="50" y="210" width="700" height="330" rx="15" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2" />
+      <text x="70" y="245" font-family="sans-serif" font-size="16" font-weight="bold" fill="#0f172a">Ringkasan Konsep Visual & Poin Utama:</text>
+
+      ${pointsList
+        .slice(0, 5)
+        .map((pt, idx) => `<g transform="translate(70, ${275 + idx * 48})">
+            <circle cx="14" cy="14" r="14" fill="#059669" />
+            <text x="14" y="19" font-family="sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle">${idx + 1}</text>
+            <text x="40" y="19" font-family="sans-serif" font-size="14" font-weight="bold" fill="#334155">${pt.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</text>
+          </g>`)
+        .join("")}
+    </svg>`;
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Infografis_NanoBanana2_${item.materiTopic.replace(/\s+/g, "_")}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Topic Suggestions
   const topicSuggestions = useMemo(() => {
     return (cptpList || []).map((cp: any) => ({
@@ -108,10 +206,15 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
 
   // Handle Generate Media AI Banana
   const handleGenerateBananaMedia = async () => {
+    setGenerationError(null);
     setIsGenerating(true);
-    const effectivePrompt = userPromptText.trim() || `Buatkan media pembelajaran AI Banana tipe ${mediaType} untuk mapel ${subject} kelas ${targetGrade} dengan topik: "${materiTopic}". Gaya visual: ${styleTheme}.`;
 
-    const systemPrompt = `Anda adalah AI Banana Studio (AI Media Pembelajaran). Hasilkan JSON valid dengan struktur berikut:
+    const topic = materiTopic.trim() || `Materi ${subject} ${targetGrade}`;
+    const effectivePrompt =
+      userPromptText.trim() ||
+      `Buatkan media pembelajaran AI Banana tipe ${mediaType} untuk mapel ${subject} kelas ${targetGrade} dengan topik: "${topic}". Gaya visual: ${styleTheme}. Gunakan AI Engine: ${selectedAiEngine}.`;
+
+    const systemPrompt = `Anda adalah AI Banana Studio (AI Media Pembelajaran berbasis Nano Banana 2 & Gemini Omni). Hasilkan JSON valid dengan struktur berikut:
 {
   "title": "Judul Media Ajar Kreatif",
   "mediaType": "${mediaType}",
@@ -140,6 +243,7 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
       const response = await generateAIContent({
         prompt: effectivePrompt,
         systemInstruction: systemPrompt,
+        model: selectedAiEngine === "nano_banana_2" ? "gemini-3.6-flash" : selectedAiEngine === "gemini_omni" ? "gemini-3.6-flash" : "gemini-3.6-flash",
       });
 
       let parsed: any = null;
@@ -158,17 +262,19 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
       const generatedSlides: MediaBananaSlide[] = parsed?.slides || [
         {
           slideNumber: 1,
-          title: `Pengenalan ${materiTopic}`,
+          title: `Pengenalan ${topic}`,
           subtitle: `Mata Pelajaran ${subject} - ${targetGrade}`,
           points: [
             `Selamat datang di media ajar interaktif AI Banana!`,
-            `Topik hari ini: ${materiTopic}`,
+            `Topik hari ini: ${topic}`,
             `Mari kita eksplorasi bersama secara seru, kontekstual, dan bermakna.`
           ],
-          visualPrompt: `Ilustrasi berwarna ceria tentang ${materiTopic} dengan karakter siswa ramah.`,
-          speakerNotes: `Sapa siswa dengan senyum, berikan pertanyaan pemantik awal tentang ${materiTopic}.`,
+          visualPrompt: `Ilustrasi berwarna ceria tentang ${topic} dengan karakter siswa ramah. Dibuat oleh ${
+            selectedAiEngine === "nano_banana_2" ? "Nano Banana 2 Image Engine" : "Gemini Omni Video Engine"
+          }.`,
+          speakerNotes: `Sapa siswa dengan senyum, berikan pertanyaan pemantik awal tentang ${topic}.`,
           interactiveQuiz: {
-            question: `Apakah Anda sudah pernah mendengar tentang ${materiTopic} sebelumnya?`,
+            question: `Apakah Anda sudah pernah mendengar tentang ${topic} sebelumnya?`,
             options: ["Sudah pernah dan paham", "Pernah dengar sedikit", "Belum pernah sama sekali", "Ingin tahu lebih banyak"],
             correctAnswer: "Sudah pernah dan paham",
             explanation: "Bagus sekali! Pengalaman awal akan membantu pemahaman materi hari ini."
@@ -179,14 +285,14 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
           title: "Konsep Utama & Pemahaman Inti",
           subtitle: "Pembelajaran Mendalam (Deep Learning)",
           points: [
-            `1. Mengamati bagian-bagian penting dari ${materiTopic}`,
+            `1. Mengamati bagian-bagian penting dari ${topic}`,
             `2. Menghubungkan proses alami dengan kehidupan sehari-hari`,
             `3. Menganalisis manfaat utamanya bagi lingkungan dan manusia`
           ],
-          visualPrompt: `Infografis diagram interaktif yang memperlihatkan struktur ${materiTopic}.`,
+          visualPrompt: `Infografis diagram interaktif yang memperlihatkan struktur ${topic}.`,
           speakerNotes: `Ajak siswa berdiskusi secara berpasangan untuk mengamati diagram.`,
           interactiveQuiz: {
-            question: `Mengapa ${materiTopic} sangat penting bagi kehidupan kita?`,
+            question: `Mengapa ${topic} sangat penting bagi kehidupan kita?`,
             options: [
               "Menjaga keseimbangan ekosistem bumi",
               "Sebagai hiburan semata",
@@ -230,20 +336,28 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
 
       const newItem: MediaBananaItem = {
         id: `banana-${Date.now()}`,
-        title: parsed?.title || `Media Ajar AI Banana: ${materiTopic}`,
+        title: parsed?.title || `Media Ajar AI Banana: ${topic}`,
         subject,
         targetGrade,
-        materiTopic,
+        materiTopic: topic,
         mediaType,
         promptUsed: effectivePrompt,
-        styleTheme,
+        styleTheme: `${styleTheme} (${
+          selectedAiEngine === "nano_banana_2"
+            ? "Nano Banana 2 Image"
+            : selectedAiEngine === "gemini_omni"
+            ? "Gemini Omni Video"
+            : "Gemini Flash"
+        })`,
         animationKeyframes: parsed?.animationKeyframes || [
-          `Keyframe 1: Pembukaan animasi ${materiTopic} dengan karakter masuk`,
-          `Keyframe 2: Zoom in ke bagian inti proses ${materiTopic}`,
+          `Keyframe 1: Pembukaan animasi ${topic} dengan karakter masuk`,
+          `Keyframe 2: Zoom in ke bagian inti proses ${topic}`,
           `Keyframe 3: Animasi pergerakan molekul/elemen interaktif`,
           `Keyframe 4: Penutup dengan kesimpulan dan bintang prestasi`
         ],
-        animationCaption: parsed?.animationCaption || `Video animasi interaktif memvisualisasikan ${materiTopic} secara dinamis dengan karakter edukatif ramah anak.`,
+        animationCaption:
+          parsed?.animationCaption ||
+          `Video animasi interaktif memvisualisasikan ${topic} secara dinamis dengan karakter edukatif ramah anak. Engine: ${selectedAiEngine}.`,
         slides: generatedSlides,
         createdAt: new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
       };
@@ -258,10 +372,143 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
       setTimeout(() => setSaveToast(false), 2500);
       setCurrentSlideIndex(0);
       setSelectedQuizAnswers({});
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to generate AI Banana media:", error);
+      setGenerationError(
+        error?.message ||
+          "Gagal menghasilkan media pembelajaran AI. Mohon pastikan Kunci API Gemini sudah dikonfigurasi pada menu Setelan AI Agen."
+      );
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Nano Banana 2 Image Studio Handler
+  const handleGenerateNanoImage = async () => {
+    setNanoImageError(null);
+    setIsGeneratingNanoImage(true);
+    const promptToUse =
+      nanoImagePrompt.trim() ||
+      `Buatkan konsep visual gambar infografis edukatif tentang: "${materiTopic}" untuk mapel ${subject} ${targetGrade}. Gaya: ${nanoImageStyle}.`;
+
+    const systemInstruction = `Anda adalah Nano Banana 2 AI Image Engine. Hasilkan JSON valid untuk desain gambar/grafis edukasi:
+{
+  "title": "Judul Grafis/Gambar Nano Banana 2",
+  "visualPrompt": "Prompt bahasa Inggris sangat detail untuk generator gambar (Nano Banana 2 / Imagen 3)",
+  "colorPalette": ["#FFD166", "#06D6A0", "#118AB2", "#EF476F"],
+  "layoutDescription": "Panduan susunan tata letak elemen visual pada canvas",
+  "suggestedCaptions": ["Teks Penjelas 1", "Teks Penjelas 2", "Teks Penjelas 3"]
+}`;
+
+    try {
+      const response = await generateAIContent({
+        prompt: promptToUse,
+        systemInstruction,
+        model: "gemini-3.6-flash",
+      });
+
+      let parsed: any = null;
+      if (response) {
+        const match = response.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+
+      setGeneratedNanoImageData({
+        title: parsed?.title || `Grafis Nano Banana 2: ${materiTopic}`,
+        visualPrompt:
+          parsed?.visualPrompt ||
+          `3D rendered educational diagram of ${materiTopic}, vibrant colors, cute SD student character, soft shadows, clear labels, clean vector style.`,
+        colorPalette: parsed?.colorPalette || ["#F59E0B", "#10B981", "#3B82F6", "#EC4899"],
+        layoutDescription:
+          parsed?.layoutDescription ||
+          `Gunakan tata letak terpusat dengan diagram utama di tengah dan 3 kotak fakta di sekelilingnya.`,
+        suggestedCaptions: parsed?.suggestedCaptions || [
+          `Bagian Utama dari ${materiTopic}`,
+          `Proses Kerja Alami & Manfaat Utama`,
+          `Kesimpulan Ringkas untuk Kelas`
+        ]
+      });
+    } catch (err: any) {
+      console.error("Error generating Nano Banana 2 image:", err);
+      setNanoImageError(err?.message || "Gagal membuat gambar dengan Nano Banana 2.");
+    } finally {
+      setIsGeneratingNanoImage(false);
+    }
+  };
+
+  // Gemini Omni Video Studio Handler
+  const handleGenerateOmniVideo = async () => {
+    setOmniVideoError(null);
+    setIsGeneratingOmniVideo(true);
+    const promptToUse =
+      omniVideoPrompt.trim() ||
+      `Buatkan skenario video animasi interaktif Gemini Omni tentang: "${materiTopic}" untuk mapel ${subject} ${targetGrade}. Durasi: ${omniVideoDuration}.`;
+
+    const systemInstruction = `Anda adalah Gemini Omni AI Video & Motion Engine. Hasilkan JSON valid skenario video animasi interaktif:
+{
+  "title": "Judul Video Animasi Omni",
+  "narrationScript": "Naskah narasi suara lengkap dari awal hingga akhir",
+  "bgmRecommendation": "Rekomendasi musik latar (BGM)",
+  "keyframes": [
+    {
+      "frameNumber": 1,
+      "title": "Awal / Pembuka",
+      "description": "Deskripsi visual adegan",
+      "cameraMovement": "Gerakan kamera (Zoom in, Pan left)",
+      "voiceover": "Suara narator di frame ini"
+    }
+  ]
+}`;
+
+    try {
+      const response = await generateAIContent({
+        prompt: promptToUse,
+        systemInstruction,
+        model: "gemini-3.6-flash",
+      });
+
+      let parsed: any = null;
+      if (response) {
+        const match = response.match(/\{[\s\S]*\}/);
+        if (match) parsed = JSON.parse(match[0]);
+      }
+
+      setGeneratedOmniVideoData({
+        title: parsed?.title || `Video Animasi Gemini Omni: ${materiTopic}`,
+        narrationScript:
+          parsed?.narrationScript ||
+          `Halo anak-anak hebat! Hari ini kita akan menjelajahi petualangan seru tentang ${materiTopic}. Mari kita amati bagaimana proses unik ini terjadi secara menakjubkan!`,
+        bgmRecommendation: parsed?.bgmRecommendation || "Ceria, Edukatif, Musik Instrumental Akustik Cepat",
+        keyframes: parsed?.keyframes || [
+          {
+            frameNumber: 1,
+            title: "Adegan 1: Perkenalan Karakter",
+            description: `Karakter animasi guru masuk menyapa murid dengan latar belakang laboratorium alam ceria ${materiTopic}.`,
+            cameraMovement: "Slow Zoom In dari Medium Shot ke Close Up",
+            voiceover: `Halo teman-teman! Siap belajar ${materiTopic} hari ini?`
+          },
+          {
+            frameNumber: 2,
+            title: "Adegan 2: Visualisasi Inti",
+            description: `Animasi molekul / elemen bergerak memperlihatkan proses interaktif secara perlahan.`,
+            cameraMovement: "Pan Right menyusuri alur gerakan",
+            voiceover: `Lihatlah bagaimana elemen-elemen ini saling berinteraksi secara alami!`
+          },
+          {
+            frameNumber: 3,
+            title: "Adegan 3: Aplikasi Praktis",
+            description: `Anak-anak sekolah beraktivitas dan menerapkan konsep dalam kehidupan nyata.`,
+            cameraMovement: "Wide Shot dengan efek bintang apresiasi",
+            voiceover: `Hebat sekali! Sekarang kita tahu manfaatnya bagi bumi.`
+          }
+        ]
+      });
+      setCurrentKeyframeIndex(0);
+    } catch (err: any) {
+      console.error("Error generating Gemini Omni video:", err);
+      setOmniVideoError(err?.message || "Gagal membuat skenario video Gemini Omni.");
+    } finally {
+      setIsGeneratingOmniVideo(false);
     }
   };
 
@@ -471,57 +718,81 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
               🍌 AI Banana Media Studio
             </h1>
             <p className="text-xs sm:text-sm text-yellow-50 leading-relaxed font-medium">
-              Buat Gambar Infografis, Video & Gambar Beranimasi, serta Slide Presentasi Interaktif secara otomatis berdasarkan Prompt AI sesuai Mata Pelajaran, Kelas, dan Materi Pokok.
+              Buat Gambar Infografis (Nano Banana 2), Video Animasi (Gemini Omni), dan Slide Presentasi Interaktif secara otomatis dan langsung diproses.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
               onClick={() => setActiveTab("ai_banana")}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl font-black text-xs flex items-center gap-1.5 transition-all ${
                 activeTab === "ai_banana"
-                  ? "bg-white text-amber-900 shadow-md scale-105"
+                  ? "bg-white text-amber-950 shadow-md ring-2 ring-white/50 scale-105"
                   : "bg-white/20 text-white hover:bg-white/30"
               }`}
             >
-              <Wand2 className="w-4 h-4" />
-              <span>Generator AI Banana</span>
+              <Wand2 className="w-4 h-4 text-amber-400" />
+              <span>AI Media Generator</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("nano_image_studio")}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                activeTab === "nano_image_studio"
+                  ? "bg-white text-amber-950 shadow-md ring-2 ring-white/50 scale-105"
+                  : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-yellow-300" />
+              <span>Studio Gambar Nano Banana 2</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("omni_video_studio")}
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
+                activeTab === "omni_video_studio"
+                  ? "bg-white text-emerald-950 shadow-md ring-2 ring-white/50 scale-105"
+                  : "bg-white/20 text-white hover:bg-white/30"
+              }`}
+            >
+              <Video className="w-4 h-4 text-emerald-300" />
+              <span>Studio Video Gemini Omni</span>
             </button>
 
             <button
               onClick={() => setActiveTab("history")}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
                 activeTab === "history"
                   ? "bg-white text-amber-900 shadow-md scale-105"
                   : "bg-white/20 text-white hover:bg-white/30"
               }`}
             >
               <History className="w-4 h-4" />
-              <span>Riwayat Media AI ({savedMediaItems.length})</span>
+              <span>Riwayat ({savedMediaItems.length})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("gallery")}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
                 activeTab === "gallery"
                   ? "bg-white text-amber-900 shadow-md scale-105"
                   : "bg-white/20 text-white hover:bg-white/30"
               }`}
             >
               <FolderOpen className="w-4 h-4" />
-              <span>Galeri & Template ({canvaTemplates.length})</span>
+              <span>Galeri ({canvaTemplates.length})</span>
             </button>
 
             <button
               onClick={() => setActiveTab("embed_preview")}
-              className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all ${
                 activeTab === "embed_preview"
                   ? "bg-white text-amber-900 shadow-md scale-105"
                   : "bg-white/20 text-white hover:bg-white/30"
               }`}
             >
               <Eye className="w-4 h-4" />
-              <span>Embed Canva Player</span>
+              <span>Embed Canva</span>
             </button>
           </div>
         </div>
@@ -539,7 +810,88 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
               </h3>
             </div>
 
+            {generationError && (
+              <div className="p-3.5 bg-rose-50 dark:bg-rose-950/80 border-2 border-rose-400 text-rose-900 dark:text-rose-100 rounded-xl space-y-2 text-xs">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-1.5 font-black text-rose-700 dark:text-rose-300">
+                    <XCircle className="w-4 h-4 shrink-0" />
+                    <span>Gagal Generasi AI</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGenerationError(null)}
+                    className="text-rose-500 hover:text-rose-700 font-bold"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="whitespace-pre-line leading-relaxed text-[11px] font-medium">
+                  {generationError}
+                </p>
+                <div className="pt-1.5 border-t border-rose-200 dark:border-rose-800/60 flex items-center justify-between gap-2">
+                  <span className="text-[10px] text-rose-600 dark:text-rose-300 font-semibold">
+                    Pastikan API Key di Setelan AI.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGenerateBananaMedia}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 shadow-xs"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Coba Lagi</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3.5 text-xs">
+              {/* AI Engine Selection */}
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Dukungan Mesin AI (Engine)
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAiEngine("nano_banana_2")}
+                    className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                      selectedAiEngine === "nano_banana_2"
+                        ? "bg-amber-100 dark:bg-amber-950/80 border-amber-500 ring-2 ring-amber-400 text-amber-950 dark:text-amber-100 font-black shadow-xs"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-[10px]">Nano Banana 2</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAiEngine("gemini_omni")}
+                    className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                      selectedAiEngine === "gemini_omni"
+                        ? "bg-emerald-100 dark:bg-emerald-950/80 border-emerald-500 ring-2 ring-emerald-400 text-emerald-950 dark:text-emerald-100 font-black shadow-xs"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Video className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-[10px]">Gemini Omni</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAiEngine("gemini_flash")}
+                    className={`p-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                      selectedAiEngine === "gemini_flash"
+                        ? "bg-indigo-100 dark:bg-indigo-950/80 border-indigo-500 ring-2 ring-indigo-400 text-indigo-950 dark:text-indigo-100 font-black shadow-xs"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Wand2 className="w-3.5 h-3.5 text-indigo-600" />
+                    <span className="text-[10px]">Gemini Flash</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Jenis Output Media */}
               <div>
                 <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -548,41 +900,53 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setMediaType("gambar")}
+                    onClick={() => {
+                      setMediaType("gambar");
+                      setSelectedAiEngine("nano_banana_2");
+                    }}
                     className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
                       mediaType === "gambar"
-                        ? "bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-900 dark:text-amber-200 font-extrabold shadow-xs"
+                        ? "bg-amber-100 dark:bg-amber-950/80 border-amber-500 text-amber-950 dark:text-amber-100 font-black ring-2 ring-amber-400 shadow-xs"
                         : "bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     <ImageIcon className="w-4 h-4 text-amber-600" />
-                    <span className="text-[11px]">Gambar / Grafis</span>
+                    <span className="text-[11px] font-extrabold">Gambar / Grafis</span>
+                    <span className="text-[9px] text-amber-700 dark:text-amber-300 font-bold">(Nano Banana 2)</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setMediaType("video_animasi")}
+                    onClick={() => {
+                      setMediaType("video_animasi");
+                      setSelectedAiEngine("gemini_omni");
+                    }}
                     className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
                       mediaType === "video_animasi"
-                        ? "bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-900 dark:text-amber-200 font-extrabold shadow-xs"
+                        ? "bg-emerald-100 dark:bg-emerald-950/80 border-emerald-500 text-emerald-950 dark:text-emerald-100 font-black ring-2 ring-emerald-400 shadow-xs"
                         : "bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     <Video className="w-4 h-4 text-emerald-600" />
-                    <span className="text-[11px]">Video Animasi</span>
+                    <span className="text-[11px] font-extrabold">Video Animasi</span>
+                    <span className="text-[9px] text-emerald-700 dark:text-emerald-300 font-bold">(Gemini Omni)</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setMediaType("slide_interaktif")}
+                    onClick={() => {
+                      setMediaType("slide_interaktif");
+                      setSelectedAiEngine("gemini_flash");
+                    }}
                     className={`p-2.5 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
                       mediaType === "slide_interaktif"
-                        ? "bg-amber-50 dark:bg-amber-950/60 border-amber-500 text-amber-900 dark:text-amber-200 font-extrabold shadow-xs"
+                        ? "bg-indigo-100 dark:bg-indigo-950/80 border-indigo-500 text-indigo-950 dark:text-indigo-100 font-black ring-2 ring-indigo-400 shadow-xs"
                         : "bg-slate-50 dark:bg-slate-800 border-slate-200 text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     <Presentation className="w-4 h-4 text-indigo-600" />
-                    <span className="text-[11px]">Slide Interaktif</span>
+                    <span className="text-[11px] font-extrabold">Slide Interaktif</span>
+                    <span className="text-[9px] text-indigo-700 dark:text-indigo-300 font-bold">(Gemini Flash)</span>
                   </button>
                 </div>
               </div>
@@ -916,66 +1280,172 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                   </div>
                 )}
 
-                {/* MODE 2: ANIMATED MOTION CANVAS / VIDEO PLAYER */}
+                {/* MODE 2: ANIMATED MOTION CANVAS / VIDEO PLAYER (GEMINI OMNI PROCESSED) */}
                 {activeMediaItem.mediaType === "video_animasi" && (
-                  <div className="space-y-3">
-                    <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 min-h-[300px] flex flex-col justify-between relative overflow-hidden">
+                  <div className="space-y-4">
+                    <div className="bg-slate-950 text-white rounded-2xl p-6 border border-slate-800 min-h-[320px] flex flex-col justify-between relative overflow-hidden shadow-2xl">
                       {/* Video Player Canvas */}
-                      <div className="text-center my-auto space-y-3">
-                        <div className="w-20 h-20 bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 rounded-2xl flex items-center justify-center mx-auto shadow-lg animate-pulse">
-                          <Video className="w-10 h-10" />
+                      <div className="text-center my-auto space-y-4">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950 border border-emerald-500/40 text-[11px] font-black text-emerald-300">
+                          <Video className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>HASIL OLAHAN LANGSUNG GEMINI OMNI VIDEO</span>
                         </div>
-                        <h4 className="text-lg font-black text-emerald-300">
-                          {activeMediaItem.animationKeyframes?.[currentKeyframeIndex] || "Animasi Berjalan..."}
-                        </h4>
-                        <p className="text-xs text-slate-300 max-w-md mx-auto italic font-medium">
-                          "{activeMediaItem.animationCaption}"
-                        </p>
+
+                        <div className="w-24 h-24 bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-300 text-slate-950 rounded-3xl flex items-center justify-center mx-auto shadow-xl animate-pulse">
+                          <Video className="w-12 h-12" />
+                        </div>
+
+                        <div className="space-y-1 max-w-lg mx-auto">
+                          <h4 className="text-xl font-black text-emerald-200">
+                            {activeMediaItem.animationKeyframes?.[currentKeyframeIndex] || "Adegan Animasi Berjalan..."}
+                          </h4>
+                          <p className="text-xs text-slate-300 italic font-medium leading-relaxed bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                            "{activeMediaItem.animationCaption}"
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Video Playback Controls */}
-                      <div className="border-t border-slate-800 pt-3 flex items-center justify-between text-xs">
-                        <button
-                          onClick={() => setIsAnimationPlaying(!isAnimationPlaying)}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg flex items-center gap-1.5"
-                        >
-                          {isAnimationPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                          <span>{isAnimationPlaying ? "Jeda Video" : "Putar Video"}</span>
-                        </button>
+                      {/* Video Playback & Voiceover Controls */}
+                      <div className="border-t border-slate-800/80 pt-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setIsAnimationPlaying(!isAnimationPlaying)}
+                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl flex items-center gap-1.5 shadow-xs"
+                          >
+                            {isAnimationPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                            <span>{isAnimationPlaying ? "Jeda Video" : "Putar Video"}</span>
+                          </button>
+
+                          <button
+                            onClick={() =>
+                              handleSpeakNarration(
+                                activeMediaItem.animationCaption ||
+                                  activeMediaItem.animationKeyframes?.[currentKeyframeIndex] ||
+                                  activeMediaItem.title
+                              )
+                            }
+                            className="px-3 py-1.5 bg-cyan-700 hover:bg-cyan-600 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
+                            title="Putar suara narasi narator pembelajaran"
+                          >
+                            <Volume2 className="w-4 h-4 text-cyan-200" />
+                            <span>Suara Narator</span>
+                          </button>
+                        </div>
 
                         <div className="flex items-center gap-2">
                           {activeMediaItem.animationKeyframes?.map((_, kIdx) => (
                             <button
                               key={kIdx}
                               onClick={() => setCurrentKeyframeIndex(kIdx)}
-                              className={`w-3 h-3 rounded-full transition-all ${
-                                currentKeyframeIndex === kIdx ? "bg-emerald-400 scale-125" : "bg-slate-700"
+                              className={`w-3.5 h-3.5 rounded-full transition-all ${
+                                currentKeyframeIndex === kIdx ? "bg-emerald-400 ring-2 ring-emerald-300 scale-125" : "bg-slate-700"
                               }`}
+                              title={`Keyframe ${kIdx + 1}`}
                             />
                           ))}
                         </div>
 
-                        <span className="text-slate-400 font-mono text-[11px]">Keyframe {currentKeyframeIndex + 1}/4</span>
+                        <span className="text-slate-400 font-mono text-[11px] font-bold">
+                          Keyframe {currentKeyframeIndex + 1} / {activeMediaItem.animationKeyframes?.length || 4}
+                        </span>
                       </div>
                     </div>
+
+                    {/* Keyframe Scenes Breakdown */}
+                    {activeMediaItem.animationKeyframes && (
+                      <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-2">
+                        <h5 className="font-extrabold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                          <Layers className="w-4 h-4 text-emerald-600" />
+                          <span>Rincian Adegan Keyframe Video (Gemini Omni):</span>
+                        </h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          {activeMediaItem.animationKeyframes.map((kf, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => setCurrentKeyframeIndex(idx)}
+                              className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
+                                currentKeyframeIndex === idx
+                                  ? "bg-emerald-50 dark:bg-emerald-950/80 border-emerald-500 font-bold text-emerald-950 dark:text-emerald-100"
+                                  : "bg-white dark:bg-slate-900 border-slate-200 text-slate-700 dark:text-slate-300 hover:bg-slate-100"
+                              }`}
+                            >
+                              <span className="text-[10px] font-black text-emerald-600">Frame {idx + 1}:</span>
+                              <p className="text-[11px] font-medium leading-snug">{kf}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* MODE 3: GAMBAR / INFOGRAFIS GRAPHIC */}
+                {/* MODE 3: GAMBAR / INFOGRAFIS GRAPHIC (NANO BANANA 2 PROCESSED) */}
                 {activeMediaItem.mediaType === "gambar" && (
-                  <div className="space-y-3">
-                    <div className="bg-gradient-to-tr from-amber-500 via-orange-400 to-yellow-300 p-6 rounded-2xl text-slate-950 shadow-md text-center space-y-4">
-                      <div className="bg-white/90 backdrop-blur-md rounded-xl p-5 shadow-lg border border-white space-y-2">
-                        <span className="px-3 py-1 bg-amber-600 text-white font-black text-xs rounded-full inline-block">
-                          INFOGRAFIS EDUKASI SD
-                        </span>
-                        <h3 className="text-xl font-black text-slate-900">{activeMediaItem.materiTopic}</h3>
-                        <p className="text-xs font-semibold text-slate-700">
-                          {activeMediaItem.subject} - {activeMediaItem.targetGrade}
-                        </p>
-                        <div className="p-3 bg-amber-50 rounded-lg text-xs text-amber-900 text-left space-y-1 font-medium border border-amber-200">
-                          <p>📌 <b>Gaya Visual:</b> {activeMediaItem.styleTheme}</p>
-                          <p>💡 <b>Prompt Utama:</b> {activeMediaItem.promptUsed.slice(0, 120)}...</p>
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-tr from-amber-500 via-orange-400 to-emerald-500 p-6 rounded-2xl text-slate-950 shadow-xl space-y-4 border border-amber-300">
+                      <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 shadow-xl border border-white space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                          <span className="px-3 py-1 bg-amber-600 text-white font-black text-xs rounded-full inline-flex items-center gap-1 shadow-xs">
+                            <Sparkles className="w-3.5 h-3.5 text-yellow-200" />
+                            <span>HASIL OLAHAN LANGSUNG NANO BANANA 2</span>
+                          </span>
+                          <span className="text-xs font-black text-slate-600 bg-slate-100 px-3 py-1 rounded-full">
+                            {activeMediaItem.subject} • {activeMediaItem.targetGrade}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2 text-left">
+                          <h3 className="text-2xl font-black text-slate-900 tracking-tight">
+                            {activeMediaItem.materiTopic}
+                          </h3>
+                          <p className="text-xs font-semibold text-slate-600">
+                            <b>Gaya Estetika Visual:</b> {activeMediaItem.styleTheme}
+                          </p>
+                        </div>
+
+                        {/* Interactive Vector Graphic Points Board */}
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-left">
+                          <h5 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-amber-600" />
+                            <span>Visualisasi & Elemen Grafis Infografis:</span>
+                          </h5>
+
+                          <div className="space-y-2 text-xs">
+                            {(activeMediaItem.slides?.[0]?.points || [
+                              `1. Diagram visual interaktif topik ${activeMediaItem.materiTopic}`,
+                              `2. Karakter edukatif ramah anak dengan gaya ${activeMediaItem.styleTheme}`,
+                              `3. Label dan ilustrasi pendukung konsep utama`,
+                            ]).map((pt, pIdx) => (
+                              <div key={pIdx} className="p-2.5 bg-white border border-slate-200 rounded-xl flex items-start gap-2.5 shadow-2xs">
+                                <span className="w-5 h-5 rounded-full bg-amber-500 text-white font-black text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                                  {pIdx + 1}
+                                </span>
+                                <span className="font-bold text-slate-800">{pt}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons for Graphic */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadInfographicSVG(activeMediaItem)}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-md"
+                          >
+                            <Download className="w-4 h-4" />
+                            <span>Unduh Grafis Vector (SVG)</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              window.print();
+                            }}
+                            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                          >
+                            <span>Cetak Infografis</span>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -983,6 +1453,335 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB: STUDIO GAMBAR NANO BANANA 2 */}
+      {activeTab === "nano_image_studio" && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-black text-lg">
+                🖼️
+              </div>
+              <div>
+                <h3 className="font-black text-slate-900 dark:text-white text-lg">
+                  Studio Gambar & Grafis Nano Banana 2
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Membuat, mengolah, dan mengkreasikan gambar infografis, diagram 3D, serta ilustrasi edukatif dengan AI Nano Banana 2.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {nanoImageError && (
+            <div className="p-4 bg-rose-50 border border-rose-300 text-rose-800 rounded-2xl text-xs space-y-1">
+              <span className="font-bold">Error Nano Banana 2:</span> {nanoImageError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Mata Pelajaran & Materi Pokok
+                </label>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    placeholder="Mapel..."
+                    className="p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold"
+                  />
+                  <input
+                    type="text"
+                    value={targetGrade}
+                    onChange={(e) => setTargetGrade(e.target.value)}
+                    placeholder="Kelas..."
+                    className="p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold"
+                  />
+                </div>
+                <input
+                  type="text"
+                  value={materiTopic}
+                  onChange={(e) => setMateriTopic(e.target.value)}
+                  placeholder="Materi Pokok (contoh: Daur Air & Siklus Hujan)..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Gaya & Estetika Visual Gambar
+                </label>
+                <select
+                  value={nanoImageStyle}
+                  onChange={(e) => setNanoImageStyle(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-semibold"
+                >
+                  <option value="Infografis Vektor Edukatif 3D">Infografis Vektor Edukatif 3D</option>
+                  <option value="Diagram Kartun SD Berwarna Ceria">Diagram Kartun SD Berwarna Ceria</option>
+                  <option value="Ilustrasi Buku Teks Realistis Detail">Ilustrasi Buku Teks Realistis Detail</option>
+                  <option value="Komik Edukasi & Karakter Kartun">Komik Edukasi & Karakter Kartun</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Instruksi / Prompt Gambar Tambahan
+                </label>
+                <textarea
+                  rows={3}
+                  value={nanoImagePrompt}
+                  onChange={(e) => setNanoImagePrompt(e.target.value)}
+                  placeholder="Perjelas bagian yang ingin digambar (contoh: Gambar diagram daur air lengkap dengan awan, uap air, hujan, dan sungai dengan label anak panah jelas)..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-medium"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGenerateNanoImage}
+                disabled={isGeneratingNanoImage}
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white font-extrabold rounded-xl shadow-md flex items-center justify-center gap-2 text-xs transition-all disabled:opacity-50"
+              >
+                {isGeneratingNanoImage ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Mengolah Gambar Nano Banana 2...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-yellow-100" />
+                    <span>Generate & Olah Gambar Nano Banana 2</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-800/60 border rounded-2xl p-5 space-y-4">
+              {!generatedNanoImageData ? (
+                <div className="p-12 text-center text-slate-400 space-y-3">
+                  <ImageIcon className="w-12 h-12 mx-auto text-amber-400" />
+                  <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                    Studio Gambar Nano Banana 2 Siap
+                  </h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Masukkan instruksi di sebelah kiri dan klik Generate untuk menghasilkan konsep visual gambar, skema diagram, dan prompt gambar AI.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 bg-white dark:bg-slate-900 border rounded-xl shadow-xs space-y-2">
+                    <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-extrabold rounded-full text-[10px]">
+                      🖼️ Nano Banana 2 Result
+                    </span>
+                    <h4 className="font-black text-slate-900 dark:text-white text-base">
+                      {generatedNanoImageData.title}
+                    </h4>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                      <b>Panduan Tata Letak:</b> {generatedNanoImageData.layoutDescription}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 rounded-xl space-y-2">
+                    <h5 className="font-extrabold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                      <Wand2 className="w-4 h-4 text-amber-600" />
+                      <span>Prompt Generasi Gambar AI (Nano Banana 2 / Imagen)</span>
+                    </h5>
+                    <p className="p-2.5 bg-white dark:bg-slate-900 border rounded-lg text-[11px] font-mono text-slate-800 dark:text-slate-200 leading-relaxed">
+                      {generatedNanoImageData.visualPrompt}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedNanoImageData.visualPrompt);
+                        alert("Prompt Gambar Nano Banana 2 tersalin!");
+                      }}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg flex items-center gap-1 text-[11px]"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin Prompt Gambar</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-white dark:bg-slate-900 border rounded-xl space-y-2">
+                    <h5 className="font-extrabold text-slate-900 dark:text-white">
+                      Rekomendasi Palet Warna & Teks Penjelas
+                    </h5>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-500">Palet Warna:</span>
+                      {generatedNanoImageData.colorPalette.map((col, idx) => (
+                        <div key={idx} className="flex items-center gap-1">
+                          <span className="w-5 h-5 rounded-full border shadow-xs" style={{ backgroundColor: col }} />
+                          <span className="text-[10px] font-mono">{col}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300 pt-1">
+                      {generatedNanoImageData.suggestedCaptions.map((cap, idx) => (
+                        <li key={idx}><b>Teks {idx + 1}:</b> {cap}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: STUDIO VIDEO GEMINI OMNI */}
+      {activeTab === "omni_video_studio" && (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-xs space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg">
+                🎬
+              </div>
+              <div>
+                <h3 className="font-black text-slate-900 dark:text-white text-lg">
+                  Studio Video & Motion Gemini Omni
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Merancang video animasi interaktif, alur keyframe adegan, narasi suara, serta pengolahan gerak dengan AI Gemini Omni.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {omniVideoError && (
+            <div className="p-4 bg-rose-50 border border-rose-300 text-rose-800 rounded-2xl text-xs space-y-1">
+              <span className="font-bold">Error Gemini Omni:</span> {omniVideoError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-5 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Mata Pelajaran & Topik Video
+                </label>
+                <input
+                  type="text"
+                  value={materiTopic}
+                  onChange={(e) => setMateriTopic(e.target.value)}
+                  placeholder="Materi Pokok (contoh: Daur Hidup Kupu-kupu)..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-semibold mb-2"
+                />
+                <select
+                  value={omniVideoDuration}
+                  onChange={(e) => setOmniVideoDuration(e.target.value)}
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold"
+                >
+                  <option value="30 Detik (Animasi Singkat)">30 Detik (Animasi Singkat Pemantik)</option>
+                  <option value="1 Menit (Animasi Konsep)">1 Menit (Animasi Konsep Utama)</option>
+                  <option value="2 Menit (Animasi Studi Kasus)">2 Menit (Animasi Studi Kasus Lengkap)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Instruksi Skenario Video Gemini Omni
+                </label>
+                <textarea
+                  rows={4}
+                  value={omniVideoPrompt}
+                  onChange={(e) => setOmniVideoPrompt(e.target.value)}
+                  placeholder="Jelaskan kebutuhan adegan animasi (contoh: Buatkan 3 adegan animasi yang menampilkan metamorfosis ulat menjadi kepompong lalu kupu-kupu dengan narasi suara lembut ramah anak)..."
+                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-800 border rounded-xl font-medium"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGenerateOmniVideo}
+                disabled={isGeneratingOmniVideo}
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl shadow-md flex items-center justify-center gap-2 text-xs transition-all disabled:opacity-50"
+              >
+                {isGeneratingOmniVideo ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Merancang Skenario Video Omni...</span>
+                  </>
+                ) : (
+                  <>
+                    <Video className="w-4 h-4 text-emerald-100" />
+                    <span>Generate Video & Motion Gemini Omni</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="lg:col-span-7 bg-slate-50 dark:bg-slate-800/60 border rounded-2xl p-5 space-y-4">
+              {!generatedOmniVideoData ? (
+                <div className="p-12 text-center text-slate-400 space-y-3">
+                  <Video className="w-12 h-12 mx-auto text-emerald-500" />
+                  <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+                    Studio Video Gemini Omni Siap
+                  </h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Ketik instruksi skenario video di sebelah kiri lalu klik Generate untuk membangun alur adegan keyframe, musik latar, dan narasi Gemini Omni.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 text-xs">
+                  <div className="p-4 bg-white dark:bg-slate-900 border rounded-xl shadow-xs space-y-2">
+                    <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-900 font-extrabold rounded-full text-[10px]">
+                      🎬 Gemini Omni Video Scenario
+                    </span>
+                    <h4 className="font-black text-slate-900 dark:text-white text-base">
+                      {generatedOmniVideoData.title}
+                    </h4>
+                    <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                      <b>Rekomendasi Musik Latar (BGM):</b> {generatedOmniVideoData.bgmRecommendation}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800 rounded-xl space-y-2">
+                    <h5 className="font-extrabold text-emerald-900 dark:text-emerald-200">
+                      Naskah Narasi Suara Pengajar
+                    </h5>
+                    <p className="p-3 bg-white dark:bg-slate-900 border rounded-lg text-slate-800 dark:text-slate-200 leading-relaxed italic">
+                      "{generatedOmniVideoData.narrationScript}"
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h5 className="font-extrabold text-slate-900 dark:text-white flex items-center justify-between">
+                      <span>Alur Keyframe Adegan Animasi ({generatedOmniVideoData.keyframes.length} Frame)</span>
+                    </h5>
+
+                    <div className="space-y-2">
+                      {generatedOmniVideoData.keyframes.map((kf) => (
+                        <div
+                          key={kf.frameNumber}
+                          className="p-3 bg-white dark:bg-slate-900 border rounded-xl space-y-1 shadow-2xs"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-black text-emerald-600 text-xs">
+                              Frame {kf.frameNumber}: {kf.title}
+                            </span>
+                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-[10px] font-bold rounded-md text-slate-600">
+                              📹 {kf.cameraMovement}
+                            </span>
+                          </div>
+                          <p className="text-slate-700 dark:text-slate-300 font-medium">
+                            {kf.description}
+                          </p>
+                          <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-semibold italic">
+                            <b>Voiceover:</b> "{kf.voiceover}"
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

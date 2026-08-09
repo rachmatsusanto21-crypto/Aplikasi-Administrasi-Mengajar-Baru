@@ -271,7 +271,7 @@ app.delete("/api/backup/delete/:filename", (req, res) => {
   }
 });
 
-// API route for AI Generation
+// API route for AI Generation with Auto-Retry for 503/429 temporary errors
 app.post("/api/ai/generate", async (req, res) => {
   try {
     const { prompt, model = "gemini-3.6-flash", manualApiKey, systemInstruction } = req.body;
@@ -298,20 +298,64 @@ app.post("/api/ai/generate", async (req, res) => {
       },
     });
 
-    const response = await ai.models.generateContent({
-      model: targetModel,
-      contents: prompt,
-      config: systemInstruction
-        ? {
-            systemInstruction: systemInstruction,
-            temperature: 0.7,
-          }
-        : {
-            temperature: 0.7,
-          },
-    });
+    // Auto retry loop for 503 (high demand) or 429 (rate limit)
+    let lastError: any = null;
+    const maxRetries = 3;
 
-    return res.json({ result: response.text });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model: targetModel,
+          contents: prompt,
+          config: systemInstruction
+            ? {
+                systemInstruction: systemInstruction,
+                temperature: 0.7,
+              }
+            : {
+                temperature: 0.7,
+              },
+        });
+
+        if (response && response.text) {
+          return res.json({ result: response.text });
+        }
+      } catch (err: any) {
+        lastError = err;
+        const errMsg = String(err?.message || err);
+        const isTemporary =
+          errMsg.includes("503") ||
+          errMsg.includes("high demand") ||
+          errMsg.includes("UNAVAILABLE") ||
+          errMsg.includes("429") ||
+          errMsg.includes("RESOURCE_EXHAUSTED");
+
+        if (isTemporary && attempt < maxRetries) {
+          console.warn(`AI Generation attempt ${attempt} failed with temporary error: ${errMsg}. Retrying in ${attempt * 1500}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+          continue;
+        }
+
+        // If not temporary or out of attempts, stop retrying
+        break;
+      }
+    }
+
+    // Format error message for human readability
+    const rawError = String(lastError?.message || lastError || "");
+    if (rawError.includes("503") || rawError.includes("high demand") || rawError.includes("UNAVAILABLE")) {
+      return res.status(503).json({
+        error: "Server Google Gemini sedang mengalami lonjakan trafik tinggi (503 High Demand). Mohon tunggu beberapa detik lalu tekan tombol 'Coba Lagi'.",
+      });
+    } else if (rawError.includes("429") || rawError.includes("RESOURCE_EXHAUSTED")) {
+      return res.status(429).json({
+        error: "Batas kuota Gemini API tercapai (429 Rate Limit). Mohon tunggu sejenak sebelum mencoba kembali.",
+      });
+    }
+
+    return res.status(500).json({
+      error: rawError || "Terjadi kesalahan saat memproses permintaan AI.",
+    });
   } catch (error: any) {
     console.error("AI Generation error:", error);
     return res.status(500).json({

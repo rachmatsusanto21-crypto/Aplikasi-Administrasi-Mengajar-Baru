@@ -1,4 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
+import { STORAGE_KEYS, loadStoredData } from "./storage";
 
 interface GenerateAIOptions {
   prompt: string;
@@ -14,11 +15,27 @@ export async function generateAIContent({
   manualApiKey,
 }: GenerateAIOptions): Promise<string> {
   const combinedPrompt = systemInstruction ? `${systemInstruction}\n\nPERINTAH USER:\n${prompt}` : prompt;
-  // Normalize model name to avoid deprecated models like gemini-2.5-flash or gemini-1.5-flash
+
+  // Normalize model name to ensure valid Gemini model string
   let targetModel = model;
-  if (!targetModel || targetModel.includes("2.5") || targetModel.includes("1.5") || targetModel.includes("2.0")) {
+  if (
+    !targetModel ||
+    targetModel.includes("2.5") ||
+    targetModel.includes("1.5") ||
+    targetModel.includes("2.0") ||
+    targetModel.includes("banana") ||
+    targetModel.includes("omni")
+  ) {
     targetModel = "gemini-3.6-flash";
   }
+
+  // Get saved API key from localStorage if available
+  const savedSettings = loadStoredData<any>(STORAGE_KEYS.AI_SETTINGS, {});
+  const effectiveApiKey =
+    manualApiKey ||
+    savedSettings?.apiKey ||
+    savedSettings?.manualApiKey ||
+    undefined;
 
   // 1. Try Backend API Route first
   try {
@@ -28,7 +45,8 @@ export async function generateAIContent({
       body: JSON.stringify({
         prompt: combinedPrompt,
         model: targetModel,
-        manualApiKey: manualApiKey || undefined,
+        manualApiKey: effectiveApiKey,
+        systemInstruction,
       }),
     });
 
@@ -44,7 +62,7 @@ export async function generateAIContent({
       }
     }
   } catch (err: any) {
-    // If the error was explicitly thrown from data.error above, rethrow unless it's a JSON/fetch syntax error
+    // If explicit error message from backend was received, rethrow it
     if (
       err.message &&
       !err.message.includes("Unexpected token") &&
@@ -56,29 +74,52 @@ export async function generateAIContent({
   }
 
   // 2. Client-side Fallback (e.g., when hosted statically on Vercel without express backend)
-  const apiKey = manualApiKey || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+  const apiKey = effectiveApiKey || (import.meta as any).env?.VITE_GEMINI_API_KEY;
 
   if (apiKey && apiKey.trim()) {
-    try {
-      const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+    const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
+    let lastClientErr: any = null;
+    const maxRetries = 3;
 
-      const response = await ai.models.generateContent({
-        model: targetModel,
-        contents: combinedPrompt,
-      });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model: targetModel,
+          contents: combinedPrompt,
+        });
 
-      if (response.text) {
-        return response.text;
+        if (response && response.text) {
+          return response.text;
+        }
+      } catch (clientErr: any) {
+        lastClientErr = clientErr;
+        const errMsg = String(clientErr?.message || clientErr);
+        const isTemporary =
+          errMsg.includes("503") ||
+          errMsg.includes("high demand") ||
+          errMsg.includes("UNAVAILABLE") ||
+          errMsg.includes("429") ||
+          errMsg.includes("RESOURCE_EXHAUSTED");
+
+        if (isTemporary && attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, attempt * 1500));
+          continue;
+        }
+        break;
       }
-      throw new Error("Respon AI kosong dari Gemini API");
-    } catch (clientErr: any) {
-      throw new Error(`Gagal memproses dengan Gemini API Key: ${clientErr.message || clientErr}`);
     }
+
+    const rawMsg = String(lastClientErr?.message || lastClientErr || "");
+    if (rawMsg.includes("503") || rawMsg.includes("high demand") || rawMsg.includes("UNAVAILABLE")) {
+      throw new Error("Server Google Gemini sedang mengalami lonjakan trafik tinggi (503 High Demand). Silakan coba beberapa detik lagi.");
+    }
+    throw new Error(`Gagal memproses dengan Gemini API Key: ${rawMsg}`);
   }
 
-  // 3. Helpful error message if no API Key provided on static hosting
+  // 3. Helpful error message if no API Key provided
   throw new Error(
-    "Server API backend tidak terjangkau di lingkungan Vercel/Hosting Statis ini.\n\n" +
-    "SOLUSI: Silakan buka menu 'Setelan AI Agen' (ikon Bot di kanan atas), lalu masukkan 'Manual Gemini API Key' Anda untuk mengaktifkan AI."
+    "Kunci API Gemini belum dikonfigurasi di server maupun di penyimpanan lokal.\n\n" +
+    "SOLUSI: Silakan buka menu 'Setelan AI' pada aplikasi, lalu masukkan Gemini API Key Anda untuk mengaktifkan fitur AI secara penuh."
   );
 }
+
