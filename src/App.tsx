@@ -72,6 +72,7 @@ import { LearningAnalysisView } from "./components/modules/LearningAnalysisView"
 import { DashboardSummaryView } from "./components/modules/DashboardSummaryView";
 import { ExamGeneratorView } from "./components/modules/ExamGeneratorView";
 import { CanvaStudioView } from "./components/modules/CanvaStudioView";
+import { LkpdGeneratorView } from "./components/modules/LkpdGeneratorView";
 
 export default function App() {
   const [activeModule, setActiveModule] = useState<NavModule>("dashboard");
@@ -563,6 +564,13 @@ export default function App() {
   const checkAndRestoreLatestCloudData = async (manual = false) => {
     try {
       const res = await fetch("/api/backup/latest");
+      if (!res.ok) {
+        if (manual) {
+          setSyncMessage("Gagal terhubung ke server cloud backup.");
+          setTimeout(() => setSyncMessage(null), 4000);
+        }
+        return;
+      }
       const json = await res.json();
       if (json.status === "success" && json.data && json.timestamp) {
         const cloudTime = new Date(json.timestamp).getTime();
@@ -586,7 +594,7 @@ export default function App() {
         setTimeout(() => setSyncMessage(null), 4000);
       }
     } catch (err) {
-      console.error("Error auto restoring cloud backup:", err);
+      console.warn("Auto restoring cloud backup status:", err);
     }
   };
 
@@ -871,6 +879,15 @@ export default function App() {
                 onDeleteExam={handleDeleteExam}
                 onOpenPrint={handleOpenPrint}
                 aiSettings={aiSettings}
+              />
+            )}
+
+            {activeModule === "lkpd_generator" && (
+              <LkpdGeneratorView
+                cptpList={cptpItems}
+                subjects={subjects}
+                schoolIdentity={schoolIdentity}
+                onOpenPrintModal={handleOpenPrint}
               />
             )}
 

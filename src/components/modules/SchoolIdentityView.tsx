@@ -20,13 +20,14 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
 
   const logoLeftInputRef = useRef<HTMLInputElement>(null);
   const logoRightInputRef = useRef<HTMLInputElement>(null);
+  const kopBannerInputRef = useRef<HTMLInputElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: "logoLeftUrl" | "logoRightUrl" | "logoUrl") => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: "logoLeftUrl" | "logoRightUrl" | "logoUrl" | "kopSuratBannerUrl") => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -284,89 +285,157 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
               </div>
             </div>
 
-            {/* Dual Logo Management (Kiri & Kanan Kop Surat) */}
+            {/* Single Banner / Dual Logo Kop Surat Management */}
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col space-y-4">
               <span className="text-xs font-bold text-slate-800 border-b border-slate-200 pb-1.5 flex items-center gap-1.5">
-                <Image className="w-3.5 h-3.5 text-emerald-600" />
-                Logo Kop Surat (Embedded Base64)
+                <Image className="w-4 h-4 text-emerald-600" />
+                Unggah Kop Surat & Logo Sekolah (Base64)
               </span>
 
-              <div className="grid grid-cols-2 gap-3 text-center">
-                {/* Logo Kiri (Pemkot / Dinas) */}
-                <div className="flex flex-col items-center space-y-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
-                  <span className="text-[11px] font-bold text-slate-700">Logo Kiri (Pemkot)</span>
-                  <img
-                    src={formData.logoLeftUrl || formData.logoUrl || getDefaultLogoLeft()}
-                    alt="Logo Kiri"
-                    className="w-16 h-16 object-contain rounded-md border bg-slate-50 p-1"
-                  />
-                  <div className="flex items-center gap-1 w-full">
-                    <button
-                      type="button"
-                      onClick={() => logoLeftInputRef.current?.click()}
-                      className="flex-1 py-1 px-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-md flex items-center justify-center gap-1"
-                      title="Unggah berkas logo kiri dari komputer"
-                    >
-                      <Upload className="w-3 h-3" />
-                      <span>Unggah</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleResetLogoLeft}
-                      className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md"
-                      title="Reset ke logo standar Pemkot Malang"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                    </button>
+              {/* Unggah Kop Surat Banner Gambar Utuh */}
+              <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <span>🖼️ Unggah Gambar Kop Surat Banner (Header Utuh)</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Jika Anda memiliki gambar banner kop surat lengkap (Header Pemkot + Logo + Alamat utuh), unggah di sini.
+                    </p>
                   </div>
-                  <input
-                    ref={logoLeftInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, "logoLeftUrl")}
-                    className="hidden"
-                  />
+                  {formData.kopSuratBannerUrl && (
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">
+                      Kop Surat Banner Aktif
+                    </span>
+                  )}
                 </div>
 
-                {/* Logo Kanan (Sekolah / Tut Wuri) */}
-                <div className="flex flex-col items-center space-y-2 bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
-                  <span className="text-[11px] font-bold text-slate-700">Logo Kanan (Sekolah)</span>
-                  <img
-                    src={formData.logoRightUrl || getDefaultLogoRight()}
-                    alt="Logo Kanan"
-                    className="w-16 h-16 object-contain rounded-md border bg-slate-50 p-1"
-                  />
-                  <div className="flex items-center gap-1 w-full">
-                    <button
-                      type="button"
-                      onClick={() => logoRightInputRef.current?.click()}
-                      className="flex-1 py-1 px-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-md flex items-center justify-center gap-1"
-                      title="Unggah berkas logo kanan dari komputer"
-                    >
-                      <Upload className="w-3 h-3" />
-                      <span>Unggah</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleResetLogoRight}
-                      className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md"
-                      title="Reset ke logo standar Tut Wuri Handayani"
-                    >
-                      <RefreshCw className="w-3 h-3" />
-                    </button>
+                {formData.kopSuratBannerUrl ? (
+                  <div className="space-y-2">
+                    <div className="p-2 border border-emerald-300 bg-emerald-50/50 rounded-lg flex flex-col items-center justify-center">
+                      <img
+                        src={formData.kopSuratBannerUrl}
+                        alt="Kop Surat Banner"
+                        className="max-h-28 w-auto object-contain rounded"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => kopBannerInputRef.current?.click()}
+                        className="flex-1 py-1.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-md flex items-center justify-center gap-1.5 shadow-2xs"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Ganti Gambar Kop Surat</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData((prev) => ({ ...prev, kopSuratBannerUrl: "" }))}
+                        className="py-1.5 px-3 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold rounded-md flex items-center justify-center gap-1"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Gunakan Kop Teks Otomatis</span>
+                      </button>
+                    </div>
                   </div>
-                  <input
-                    ref={logoRightInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileUpload(e, "logoRightUrl")}
-                    className="hidden"
-                  />
+                ) : (
+                  <div
+                    onClick={() => kopBannerInputRef.current?.click()}
+                    className="p-4 border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/30 hover:bg-emerald-50/70 rounded-lg cursor-pointer text-center transition-all"
+                  >
+                    <Upload className="w-6 h-6 text-emerald-600 mx-auto mb-1" />
+                    <p className="text-xs font-bold text-emerald-800">Klik di sini untuk Unggah Gambar Kop Surat Utuh</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">Format PNG, JPG, atau WebP (Otomatis dikonversi ke Base64)</p>
+                  </div>
+                )}
+
+                <input
+                  ref={kopBannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleFileUpload(e, "kopSuratBannerUrl")}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Logo Kiri & Kanan (Opsi Fallback) */}
+              <div className="bg-white p-3 rounded-lg border border-slate-200">
+                <span className="text-[11px] font-bold text-slate-700 block mb-2">
+                  Atau Gunakan Logo Kiri & Kanan (Kop Teks Generator Otomatis):
+                </span>
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  {/* Logo Kiri (Pemkot / Dinas) */}
+                  <div className="flex flex-col items-center space-y-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <span className="text-[11px] font-bold text-slate-700">Logo Pemkot / Dinas</span>
+                    <img
+                      src={formData.logoLeftUrl || formData.logoUrl || getDefaultLogoLeft()}
+                      alt="Logo Kiri"
+                      className="w-14 h-14 object-contain rounded-md border bg-white p-1"
+                    />
+                    <div className="flex items-center gap-1 w-full">
+                      <button
+                        type="button"
+                        onClick={() => logoLeftInputRef.current?.click()}
+                        className="flex-1 py-1 px-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-md flex items-center justify-center gap-1"
+                      >
+                        <Upload className="w-3 h-3" />
+                        <span>Unggah Logo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetLogoLeft}
+                        className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <input
+                      ref={logoLeftInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, "logoLeftUrl")}
+                      className="hidden"
+                    />
+                  </div>
+
+                  {/* Logo Kanan (Sekolah / Tut Wuri) */}
+                  <div className="flex flex-col items-center space-y-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <span className="text-[11px] font-bold text-slate-700">Logo Sekolah</span>
+                    <img
+                      src={formData.logoRightUrl || getDefaultLogoRight()}
+                      alt="Logo Kanan"
+                      className="w-14 h-14 object-contain rounded-md border bg-white p-1"
+                    />
+                    <div className="flex items-center gap-1 w-full">
+                      <button
+                        type="button"
+                        onClick={() => logoRightInputRef.current?.click()}
+                        className="flex-1 py-1 px-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-md flex items-center justify-center gap-1"
+                      >
+                        <Upload className="w-3 h-3" />
+                        <span>Unggah Logo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleResetLogoRight}
+                        className="p-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-md"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <input
+                      ref={logoRightInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, "logoRightUrl")}
+                      className="hidden"
+                    />
+                  </div>
                 </div>
               </div>
 
               <p className="text-[10px] text-slate-500 italic text-left">
-                💡 <b>Tips:</b> Berkas gambar yang diunggah otomatis diubah menjadi <i>Base64 Data URI</i>. Logo langsung tertanam di dalam berkas dokumen Word (.docx) sehingga tidak hilang saat diunduh atau dibuka di Microsoft Word tanpa internet.
+                💡 <b>Catatan:</b> Gambar Kop Surat Banner utuh yang diunggah akan otomatis tampil di seluruh dokumen cetak dan laporan resmi.
               </p>
             </div>
           </div>

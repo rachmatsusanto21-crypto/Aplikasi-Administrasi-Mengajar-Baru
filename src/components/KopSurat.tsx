@@ -32,60 +32,70 @@ export const KopSurat: React.FC<KopSuratProps> = ({
 
   return (
     <div className={`border-b-4 border-double border-slate-900 pb-3 mb-5 ${className}`}>
-      <div className="flex items-center justify-between gap-3 sm:gap-6">
-        {/* Logo Kiri */}
-        <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center flex-shrink-0">
+      {schoolIdentity?.kopSuratBannerUrl ? (
+        <div className="w-full flex justify-center mb-1">
           <img
-            src={logoLeft}
-            alt="Logo Kiri"
-            className="max-w-full max-h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = fallbackLeft;
-            }}
+            src={schoolIdentity.kopSuratBannerUrl}
+            alt="Kop Surat Banner"
+            className="w-full max-h-36 object-contain"
           />
         </div>
+      ) : (
+        <div className="flex items-center justify-between gap-3 sm:gap-6">
+          {/* Logo Kiri */}
+          <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center flex-shrink-0">
+            <img
+              src={logoLeft}
+              alt="Logo Kiri"
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = fallbackLeft;
+              }}
+            />
+          </div>
 
-        {/* Text Header Kop Surat */}
-        <div className="flex-1 text-center leading-tight">
-          <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-900">
-            PEMERINTAH KOTA MALANG
-          </h3>
-          <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-900">
-            DINAS PENDIDIKAN DAN KEBUDAYAAN
-          </h3>
-          <h2 className="font-extrabold text-base sm:text-xl uppercase tracking-wider text-slate-900 my-0.5">
-            {schoolName}
-          </h2>
-          <p className="text-[11px] sm:text-xs font-semibold text-slate-800">
-            NPSN: {npsn}
-          </p>
-          <p className="text-[11px] sm:text-xs text-slate-800">
-            {address}
-          </p>
-          <p className="text-[10px] sm:text-[11px] text-slate-700">
-            Telp. {phone} &nbsp; email: {email}
-          </p>
-        </div>
+          {/* Text Header Kop Surat */}
+          <div className="flex-1 text-center leading-tight">
+            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-900">
+              PEMERINTAH KOTA MALANG
+            </h3>
+            <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-900">
+              DINAS PENDIDIKAN DAN KEBUDAYAAN
+            </h3>
+            <h2 className="font-extrabold text-base sm:text-xl uppercase tracking-wider text-slate-900 my-0.5">
+              {schoolName}
+            </h2>
+            <p className="text-[11px] sm:text-xs font-semibold text-slate-800">
+              NPSN: {npsn}
+            </p>
+            <p className="text-[11px] sm:text-xs text-slate-800">
+              {address}
+            </p>
+            <p className="text-[10px] sm:text-[11px] text-slate-700">
+              Telp. {phone} &nbsp; email: {email}
+            </p>
+          </div>
 
-        {/* Logo Kanan */}
-        <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center flex-shrink-0">
-          <img
-            src={logoRight}
-            alt="Logo Kanan"
-            className="max-w-full max-h-full object-contain"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = fallbackRight;
-            }}
-          />
+          {/* Logo Kanan */}
+          <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center flex-shrink-0">
+            <img
+              src={logoRight}
+              alt="Logo Kanan"
+              className="max-w-full max-h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = fallbackRight;
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {title && (
         <div className="text-center mt-4 pt-2 border-t border-slate-300">
           <h4 className="font-bold text-sm sm:text-base uppercase underline tracking-wider text-slate-900">
             {title}
           </h4>
-          {subtitle && <p className="text-xs text-slate-600 font-medium mt-0.5">{subtitle}</p>}
+          {subtitle && <div className="text-xs text-slate-600 font-medium mt-0.5">{subtitle}</div>}
         </div>
       )}
     </div>

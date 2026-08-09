@@ -54,6 +54,8 @@ const STORAGE_KEYS = {
   MODUL_AJAR: "adm_guru_modul_ajar",
   AI_SETTINGS: "adm_guru_ai_settings",
   SUBJECT_WEEKLY_ACTIVE_DAYS: "adm_guru_subject_weekly_active_days",
+  LKPD_HISTORY: "adm_guru_lkpd_history",
+  MEDIA_BANANA_HISTORY: "adm_guru_media_banana_history",
 };
 
 export function loadStoredData<T>(key: string, defaultValue: T): T {

@@ -2,15 +2,18 @@ import { GoogleGenAI } from "@google/genai";
 
 interface GenerateAIOptions {
   prompt: string;
+  systemInstruction?: string;
   model?: string;
   manualApiKey?: string;
 }
 
 export async function generateAIContent({
   prompt,
+  systemInstruction,
   model = "gemini-3.6-flash",
   manualApiKey,
 }: GenerateAIOptions): Promise<string> {
+  const combinedPrompt = systemInstruction ? `${systemInstruction}\n\nPERINTAH USER:\n${prompt}` : prompt;
   // Normalize model name to avoid deprecated models like gemini-2.5-flash or gemini-1.5-flash
   let targetModel = model;
   if (!targetModel || targetModel.includes("2.5") || targetModel.includes("1.5") || targetModel.includes("2.0")) {
@@ -23,7 +26,7 @@ export async function generateAIContent({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        prompt,
+        prompt: combinedPrompt,
         model: targetModel,
         manualApiKey: manualApiKey || undefined,
       }),
@@ -61,7 +64,7 @@ export async function generateAIContent({
 
       const response = await ai.models.generateContent({
         model: targetModel,
-        contents: prompt,
+        contents: combinedPrompt,
       });
 
       if (response.text) {

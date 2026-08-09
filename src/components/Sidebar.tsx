@@ -57,7 +57,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: "curriculum" as NavModule, label: "Kurikulum CP & TP", icon: BookOpen, hasAI: true, color: "text-violet-400" },
         { id: "teaching_module" as NavModule, label: "Modul Ajar (AI Deep Learning)", icon: Sparkles, hasAI: true, highlight: true, color: "text-fuchsia-400" },
         { id: "exam_generator" as NavModule, label: "Generator Soal & Kisi-Kisi AI", icon: ClipboardList, hasAI: true, highlight: true, color: "text-amber-400" },
-        { id: "canva_studio" as NavModule, label: "Canva Studio & Desain AI", icon: Palette, hasAI: true, highlight: true, color: "text-teal-400" },
+        { id: "lkpd_generator" as NavModule, label: "Generate LKPD (AI)", icon: FileSpreadsheet, hasAI: true, highlight: true, color: "text-emerald-400" },
+        { id: "canva_studio" as NavModule, label: "Desain Media Pembelajaran AI Banana", icon: Palette, hasAI: true, highlight: true, color: "text-amber-300" },
       ],
     },
     {

@@ -568,7 +568,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                 <h3 className="text-lg font-bold uppercase underline tracking-wider text-slate-900">
                   {title}
                 </h3>
-                {subtitle && <p className="text-xs text-slate-600 font-medium mt-1">{subtitle}</p>}
+                {subtitle && <div className="text-xs text-slate-600 font-medium mt-1">{subtitle}</div>}
                 <div className="flex justify-between items-center text-xs text-slate-700 mt-3 pt-2 border-t border-slate-200">
                   <div>
                     <b>Tahun Pelajaran:</b> {schoolIdentity.academicYear} | <b>Semester:</b> {schoolIdentity.semester}

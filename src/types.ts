@@ -29,6 +29,7 @@ export interface SchoolIdentity {
   logoUrl: string;
   logoLeftUrl?: string;
   logoRightUrl?: string;
+  kopSuratBannerUrl?: string;
   academicYear: string;
   academicYearStartDate?: string; // YYYY-MM-DD
   academicYearEndDate?: string;   // YYYY-MM-DD
@@ -390,7 +391,77 @@ export type NavModule =
   | "prota_promes"
   | "teaching_module"
   | "exam_generator"
-  | "canva_studio";
+  | "canva_studio"
+  | "lkpd_generator";
+
+export interface MediaBananaSlide {
+  slideNumber: number;
+  title: string;
+  subtitle?: string;
+  points: string[];
+  visualPrompt?: string;
+  bgColor?: string;
+  speakerNotes?: string;
+  interactiveQuiz?: {
+    question: string;
+    options: string[];
+    correctAnswer: string;
+    explanation?: string;
+  };
+}
+
+export interface MediaBananaItem {
+  id: string;
+  title: string;
+  subject: string;
+  targetGrade: string;
+  materiTopic: string;
+  mediaType: "gambar" | "video_animasi" | "slide_interaktif";
+  promptUsed: string;
+  styleTheme: string;
+  imageUrl?: string;
+  animationKeyframes?: string[];
+  animationCaption?: string;
+  slides?: MediaBananaSlide[];
+  createdAt: string;
+}
+
+export interface LkpdQuestionItem {
+  no: number;
+  pertanyaan: string;
+  jenis: "Isian" | "Uraian" | "Pilihan Ganda" | "Aktivitas Praktik";
+  pilihan?: string[];
+  kunciJawaban?: string;
+  skorMaks?: number;
+}
+
+export interface LkpdPackage {
+  id: string;
+  title: string;
+  subject: string;
+  gradeClass: string;
+  materiPokok: string;
+  jenisLkpd: "Perorangan (Mandiri)" | "Kelompok (Diskusi/Proyek)" | "PjBL (Project Based)" | "PBL (Problem Based)" | "Discovery Learning";
+  alokasiWaktu: string;
+  capaianPembelajaran: string;
+  tujuanPembelajaran: string;
+  pertanyaanPemantik: string;
+  petunjukKerja: string[];
+  langkahAktivitas: {
+    no: number;
+    tahap: string;
+    instruksi: string;
+    spaceForNotes?: boolean;
+  }[];
+  questions: LkpdQuestionItem[];
+  rubrikPenilaian: {
+    kriteria: string;
+    skorMaks: number;
+    pedoman: string;
+  }[];
+  refleksiSiswa: string;
+  createdAt: string;
+}
 
 export interface CanvaTemplateItem {
   id: string;
