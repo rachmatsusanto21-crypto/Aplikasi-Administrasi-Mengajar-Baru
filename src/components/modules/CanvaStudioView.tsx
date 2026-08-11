@@ -39,6 +39,7 @@ import pptxgen from "pptxgenjs";
 import { CanvaTemplateItem, CPTPItem, SchoolIdentity, MediaBananaItem, MediaBananaSlide, AISettings } from "../../types";
 import { generateAIContent, generateAIImage } from "../../lib/aiHelper";
 import { STORAGE_KEYS, loadStoredData, saveStoredData } from "../../lib/storage";
+import { GeminiPromptHub } from "./GeminiPromptHub";
 
 interface CanvaStudioViewProps {
   cptpList?: CPTPItem[];
@@ -1522,6 +1523,19 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                     </div>
                   </div>
                 )}
+
+                {/* PROMPT GEMINI RINCI HUB (SIAP COPY) */}
+                <GeminiPromptHub
+                  subject={activeMediaItem.subject}
+                  targetGrade={activeMediaItem.targetGrade}
+                  materiTopic={activeMediaItem.materiTopic}
+                  styleTheme={activeMediaItem.styleTheme}
+                  slides={activeMediaItem.slides}
+                  animationKeyframes={activeMediaItem.animationKeyframes}
+                  animationCaption={activeMediaItem.animationCaption}
+                  imageUrl={activeMediaItem.imageUrl}
+                  title={activeMediaItem.title}
+                />
               </div>
             )}
           </div>
@@ -1736,6 +1750,17 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                       ))}
                     </ul>
                   </div>
+
+                  {/* PROMPT GEMINI RINCI HUB */}
+                  <GeminiPromptHub
+                    subject={subject}
+                    targetGrade={targetGrade}
+                    materiTopic={materiTopic}
+                    styleTheme={nanoImageStyle}
+                    customVisualPrompt={generatedNanoImageData.visualPrompt}
+                    imageUrl={generatedNanoImageData.imageUrl}
+                    title={generatedNanoImageData.title}
+                  />
                 </div>
               )}
             </div>
@@ -1888,6 +1913,18 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                       ))}
                     </div>
                   </div>
+
+                  {/* PROMPT GEMINI RINCI HUB */}
+                  <GeminiPromptHub
+                    subject={subject}
+                    targetGrade={targetGrade}
+                    materiTopic={materiTopic}
+                    styleTheme={styleTheme || "Animasi 2D/3D Interaktif SD Ceria"}
+                    narrationScript={generatedOmniVideoData.narrationScript}
+                    bgmRecommendation={generatedOmniVideoData.bgmRecommendation}
+                    keyframes={generatedOmniVideoData.keyframes}
+                    title={generatedOmniVideoData.title}
+                  />
                 </div>
               )}
             </div>
@@ -2186,6 +2223,20 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                     <span>Buka Slides.new</span>
                   </a>
                 </div>
+              </div>
+              {/* Step 3: Direct Detailed Gemini Prompt Hub */}
+              <div className="pt-2">
+                <GeminiPromptHub
+                  subject={selectedItemForGoogleSlides.subject}
+                  targetGrade={selectedItemForGoogleSlides.targetGrade}
+                  materiTopic={selectedItemForGoogleSlides.materiTopic}
+                  styleTheme={selectedItemForGoogleSlides.styleTheme}
+                  slides={selectedItemForGoogleSlides.slides}
+                  animationKeyframes={selectedItemForGoogleSlides.animationKeyframes}
+                  animationCaption={selectedItemForGoogleSlides.animationCaption}
+                  imageUrl={selectedItemForGoogleSlides.imageUrl}
+                  title={selectedItemForGoogleSlides.title}
+                />
               </div>
             </div>
 
