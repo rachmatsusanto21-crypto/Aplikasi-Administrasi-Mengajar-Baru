@@ -364,8 +364,8 @@ app.post("/api/ai/generate", async (req, res) => {
   }
 });
 
-// API route for AI Image Generation (Nano Banana 2 / Imagen 3)
-app.post("/api/ai/generate-image", async (req, res) => {
+// API route for AI Image Generation (Google AI Studio Imagen 3 / Nano Banana 2)
+async function handleImageGeneration(req: express.Request, res: express.Response) {
   try {
     const { prompt, aspectRatio = "1:1", manualApiKey } = req.body;
     const apiKey = manualApiKey || process.env.GEMINI_API_KEY;
@@ -406,7 +406,7 @@ app.post("/api/ai/generate-image", async (req, res) => {
               break;
             }
           } catch (modelErr: any) {
-            // Silently catch if Imagen endpoint is not available on this API key
+            // Silently handle if model isn't active on key
           }
         }
       } catch (genAiErr) {
@@ -432,7 +432,10 @@ app.post("/api/ai/generate-image", async (req, res) => {
     console.error("AI Image Generation endpoint error:", error);
     return res.status(500).json({ error: error?.message || "Gagal memproses gambar AI Nano Banana 2" });
   }
-});
+}
+
+app.post("/api/generate-image", handleImageGeneration);
+app.post("/api/ai/generate-image", handleImageGeneration);
 
 // API route for generating Google Apps Script Code
 app.get("/api/gas/script", (req, res) => {

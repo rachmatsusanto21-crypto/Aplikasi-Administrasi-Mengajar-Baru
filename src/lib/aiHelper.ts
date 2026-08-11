@@ -149,9 +149,9 @@ export async function generateAIImage({
     (import.meta as any).env?.VITE_GEMINI_API_KEY ||
     undefined;
 
-  // 1. Try Backend API Route first
+  // 1. Try Backend API Route (/api/generate-image)
   try {
-    const res = await fetch("/api/ai/generate-image", {
+    const res = await fetch("/api/generate-image", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
