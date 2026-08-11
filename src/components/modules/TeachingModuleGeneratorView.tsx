@@ -57,93 +57,99 @@ function safeStringArray(val: any): string[] {
   return [String(val)];
 }
 
-function getDefaultActivitiesTable(act?: { pendahuluan?: string; inti?: string; penutup?: string }, modelName = "Problem Based Learning (PBL)"): ActivityTableRow[] {
+function getDefaultActivitiesTable(
+  act?: { pendahuluan?: string; inti?: string; penutup?: string },
+  modelName = "Problem Based Learning (PBL)",
+  subject = "Mata Pelajaran",
+  topic = "Topik Pembelajaran",
+  moduleType = "Intrakurikuler"
+): ActivityTableRow[] {
   return [
     {
       no: 1,
-      tahap: "Orientasi terhadap Masalah (PBL - Mindful)",
-      kegiatan: "1. Guru menampilkan gambar / video proses perumusan dasar negara atau peristiwa kontekstual.\n2. Guru mengajukan pertanyaan pemantik mendasar: 'Mengapa para pendiri bangsa harus mengadakan sidang untuk menentukan dasar negara?'\n3. Murid mengamati, berdiskusi awal, dan menyampaikan pendapat awal secara percaya diri.",
-      alokasiWaktu: "10 Menit",
-    },
-    {
-      no: 2,
-      tahap: "Mengorganisasi Murid untuk Belajar (PBL - Meaningful)",
-      kegiatan: "1. Guru menjelaskan materi utama menggunakan PowerPoint interaktif / bahan ajar bergambar.\n2. Guru membagi murid menjadi beberapa kelompok heterogen (4-5 orang).\n3. Guru membagikan LKPD dan menjelaskan petunjuk pengerjaan penugasan kelompok.",
-      alokasiWaktu: "10 Menit",
-    },
-    {
-      no: 3,
-      tahap: "Membimbing Penyelidikan Kelompok (PBL - Meaningful & Deep Learning)",
-      kegiatan: "1. Murid membaca bahan ajar dan mengamati timeline kronologi sejarah.\n2. Murid mengidentifikasi tokoh, mengurutkan peristiwa penting pada LKPD, serta mendiskusikan perubahan usulan rumusan dasar negara.\n3. Guru berkeliling membimbing kelompok yang mengalami kesulitan dan memberikan umpan balik langsung.",
+      tahap: `Orientasi Pembelajaran (${modelName} - Mindful)`,
+      kegiatan: `1. Guru menyapa murid, memimpin doa, dan memeriksa kehadiran.\n2. Guru menyampaikan apersepsi serta memutar media pemantik terkait materi ${topic} pada kegiatan ${moduleType} ${subject}.\n3. Guru mengajukan pertanyaan pemantik mendasar untuk memicu rasa ingin tahu murid.`,
       alokasiWaktu: "15 Menit",
     },
     {
+      no: 2,
+      tahap: `Mengorganisasi Murid untuk Belajar (${modelName} - Meaningful)`,
+      kegiatan: `1. Guru menjelaskan konsep dasar ${topic} menggunakan bahan ajar dan media interaktif.\n2. Guru membagi murid ke dalam kelompok belajar heterogen (4-5 murid).\n3. Guru membagikan LKPD ${topic} dan menjelaskan petunjuk pengerjaan tugas kelompok.`,
+      alokasiWaktu: "15 Menit",
+    },
+    {
+      no: 3,
+      tahap: `Membimbing Penyelidikan & Diskusi (${modelName} - Deep Learning)`,
+      kegiatan: `1. Murid membaca bahan ajar dan mengamati sumber belajar mengenai ${topic}.\n2. Murid berdiskusi dalam kelompok untuk mengumpulkan informasi, menganalisis persoalan, dan menyelesaikan soal-soal pada LKPD.\n3. Guru berkeliling memberikan pembimbingan, motivasi, dan umpan balik langsung pada setiap kelompok.`,
+      alokasiWaktu: "30 Menit",
+    },
+    {
       no: 4,
-      tahap: "Mengembangkan & Menyajikan Hasil Karya (PBL - Joyful)",
-      kegiatan: "1. Ice breaking sejenak 'Yel-Yel Semangat'.\n2. Setiap kelompok mempresentasikan hasil diskusi LKPD dan urutan timeline di depan kelas.\n3. Kelompok lain memberikan tanggapan, apresiasi, dan pertanyaan secara santun.",
-      alokasiWaktu: "10 Menit",
+      tahap: `Mengembangkan & Menyajikan Hasil Karya (${modelName} - Joyful)`,
+      kegiatan: `1. Ice breaking sejenak untuk menyegarkan suasana kelas.\n2. Masing-masing kelompok mempresentasikan hasil pengerjaan LKPD ${topic} di depan kelas secara percaya diri.\n3. Kelompok lain memberikan tanggapan, apresiasi, dan pertanyaan secara santun.`,
+      alokasiWaktu: "15 Menit",
     },
     {
       no: 5,
-      tahap: "Menganalisis & Mengevaluasi Proses Pemecahan Masalah (PBL)",
-      kegiatan: "1. Guru bersama murid menyimpulkan inti materi dan makna nilai-nilai yang dipelajari.\n2. Murid mengerjakan kuis evaluasi/asesmen sumatif secara mandiri.\n3. Guru memberikan penguatan positif terhadap hasil belajar murid.",
-      alokasiWaktu: "10 Menit",
+      tahap: `Analisis & Evaluasi Pembelajaran (${modelName})`,
+      kegiatan: `1. Guru bersama murid merangkum dan menyimpulkan poin-poin penting dari materi ${topic}.\n2. Murid mengerjakan kuis evaluasi/asesmen sumatif ${topic} secara mandiri.\n3. Guru memberikan penguatan positif dan menutup pembelajaran dengan doa.`,
+      alokasiWaktu: "15 Menit",
     },
   ];
 }
 
-function getDefaultRubrikFormatif(topic = "Sejarah Lahirnya Pancasila"): RubrikFormatifItem[] {
+function getDefaultRubrikFormatif(topic = "Topik Pembelajaran", subject = "Mata Pelajaran"): RubrikFormatifItem[] {
   return [
     {
-      kriteria: "Menjelaskan Proses Perumusan hingga Pengesahan Pancasila",
-      sangatBaik: "Menjelaskan seluruh tahapan perumusan hingga pengesahan secara benar, runtut, dan lengkap.",
-      baik: "Menjelaskan sebagian besar tahapan dengan benar, tetapi terdapat sedikit informasi kurang lengkap.",
-      cukup: "Penjelasan masih kurang runtut dan memerlukan sedikit arahan guru.",
-      perluBimbingan: "Belum mampu menjelaskan proses perumusan meskipun telah dibimbing.",
+      kriteria: `Penguasaan Konsep & Pemahaman (${topic})`,
+      sangatBaik: `Memahami seluruh konsep utama ${topic} pada ${subject} secara mendalam, tepat, dan runtut.`,
+      baik: `Memahami sebagian besar konsep ${topic} dengan benar, terdapat sedikit detail yang kurang lengkap.`,
+      cukup: `Penjelasan konsep ${topic} cukup baik namun memerlukan sedikit bimbingan guru.`,
+      perluBimbingan: `Belum mampu menjelaskan konsep dasar ${topic} meskipun telah dibimbing.`,
     },
     {
-      kriteria: "Mengurutkan Peristiwa Sejarah berdasarkan Kronologi",
-      sangatBaik: "Mengurutkan seluruh peristiwa secara tepat sesuai urutan waktu tanpa kesalahan.",
-      baik: "Mengurutkan sebagian besar peristiwa dengan benar, hanya terdapat 1-2 kesalahan urutan.",
-      cukup: "Terdapat beberapa kesalahan kronologi dan memerlukan bantuan teman/guru.",
-      perluBimbingan: "Belum mampu mengurutkan peristiwa sesuai kronologi.",
+      kriteria: `Analisis & Pemecahan Masalah pada LKPD`,
+      sangatBaik: `Mampu menganalisis dan memecahkan soal/tugas ${topic} pada LKPD secara mandiri, kritis, dan logis.`,
+      baik: `Mampu memecahkan masalah ${topic} dengan baik, hanya sedikit kesalahan teknis.`,
+      cukup: `Memecahkan masalah ${topic} dengan bantuan beberapa arahan dari teman sekelompok/guru.`,
+      perluBimbingan: `Belum mampu menyelesaikan tugas analisis pada LKPD secara mandiri.`,
     },
     {
-      kriteria: "Menganalisis Peran Tokoh dan Perubahan Rumusan Sila Pertama",
-      sangatBaik: "Menjelaskan peran tokoh dan menganalisis makna perubahan sila pertama dengan tepat disertai alasan logis.",
-      baik: "Menjelaskan peran tokoh dan perubahan sila pertama dengan benar, alasan kurang lengkap.",
-      cukup: "Menjelaskan sebagian peran tokoh tetapi analisis perubahan sila pertama masih sederhana.",
-      perluBimbingan: "Belum mampu menganalisis peran tokoh maupun perubahan rumusan sila pertama.",
+      kriteria: `Kerjasama & Kolaborasi Kelompok`,
+      sangatBaik: `Sangat aktif berdiskusi, membantu teman sekelompok, dan bertanggung jawab atas tugas bersama.`,
+      baik: `Aktif bekerja sama dalam kelompok dan menyelesaikan bagian tugasnya dengan baik.`,
+      cukup: `Cukup terlibat dalam diskusi kelompok namun perlu didorong untuk lebih aktif.`,
+      perluBimbingan: `Pasif dalam diskusi kelompok dan bergantung pada teman lain.`,
     },
     {
-      kriteria: "Kemampuan Menyampaikan Jawaban / Presentasi Lisan",
-      sangatBaik: "Menyampaikan jawaban dengan lancar, percaya diri, suara jelas, bahasa santun, dan mampu menanggapi pertanyaan.",
-      baik: "Menyampaikan jawaban dengan cukup lancar, namun masih sedikit ragu-ragu.",
-      cukup: "Menyampaikan jawaban singkat dan memerlukan dorongan dari guru.",
-      perluBimbingan: "Belum mampu menyampaikan hasil diskusi di depan kelas.",
+      kriteria: `Keterampilan Presentasi & Penyampaian Hasil`,
+      sangatBaik: `Menyampaikan hasil diskusi ${topic} dengan suara jelas, percaya diri, bahasa santun, dan komunikatif.`,
+      baik: `Menyampaikan hasil diskusi dengan cukup lancar dan bahasa yang santun.`,
+      cukup: `Menyampaikan hasil diskusi secara singkat dan masih tampak ragu-ragu.`,
+      perluBimbingan: `Belum berani atau belum mampu menyampaikan hasil diskusi di depan kelas.`,
     },
   ];
 }
 
-function getDefaultRubrikSumatif(topic = "Materi Pembelajaran"): RubrikSumatifItem[] {
+function getDefaultRubrikSumatif(topic = "Topik Pembelajaran", subject = "Mata Pelajaran"): RubrikSumatifItem[] {
   return [
     {
-      kriteria: "Sikap (Ketelitian, Kerja Sama & Tanggung Jawab)",
-      indikator: "Sangat aktif bekerja sama, teliti, bertanggung jawab, dan menyelesaikan tugas kelompok tepat waktu.",
+      kriteria: "Sikap (Gotong Royong, Bernalar Kritis & Tanggung Jawab)",
+      indikator: `Sangat aktif bekerja sama, teliti, dan bertanggung jawab selama proses pembelajaran ${topic}.`,
       skorMaks: 25,
-      pedoman: "Aktif & Tanggung jawab tanpa diingatkan = 25; Perlu sedikit arahan = 20; Kurang aktif = 15; Pasif = 10.",
+      pedoman: "Sangat Aktif & Mandiri = 25; Cukup Aktif = 20; Perlu Bimbingan = 15; Pasif = 10.",
     },
     {
-      kriteria: "Pengetahuan (Penguasaan Konsep PG & Isian)",
-      indikator: `Mengidentifikasi tokoh, tanggal penting, lembaga perumus, dan konsep ${topic} pada soal tes tertulis.`,
+      kriteria: `Pengetahuan (Tes Tertulis ${topic})`,
+      indikator: `Mengidentifikasi, menjelaskan, dan menganalisis konsep ${topic} pada mata pelajaran ${subject}.`,
       skorMaks: 50,
-      pedoman: "Setiap soal Pilihan Ganda benar = 4 poin (5 Soal = 20 Poin); Isian Singkat benar = 10 poin (3 Soal = 30 Poin).",
+      pedoman: "Pilihan Ganda benar = 4 poin per soal; Uraian benar & lengkap = 12 poin per soal.",
     },
     {
-      kriteria: "Keterampilan (Penyusunan Timeline & Analisis Uraian HOTS)",
-      indikator: "Menyusun kronologi peristiwa secara runtut pada LKPD dan memberikan analisis pemecahan masalah yang logis.",
+      kriteria: `Keterampilan (Penyelesaian LKPD & Presentasi ${topic})`,
+      indikator: `Menyusun jawaban LKPD secara runtut dan mempresentasikan hasil analisis materi ${topic}.`,
       skorMaks: 25,
-      pedoman: "Analisis sangat tepat & logis = 25; Cukup tepat = 18; Kurang tepat = 10; Tidak menjawab = 0.",
+      pedoman: "Sangat Lengkap & Tepat = 25; Cukup Lengkap = 18; Kurang Tepat = 10; Tidak Menjawab = 0.",
     },
   ];
 }
@@ -174,179 +180,179 @@ function getDefaultRubrikAsLearning(): RubrikFormatifItem[] {
   ];
 }
 
-function getDefaultKisiKisi(subject = "Pendidikan Pancasila", topic = "Sejarah Lahirnya Pancasila"): KisiKisiItem[] {
+function getDefaultKisiKisi(subject = "Mata Pelajaran", topic = "Topik Pembelajaran"): KisiKisiItem[] {
   return [
-    { no: 1, tujuanPembelajaran: "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", indikator: "Menjelaskan tujuan dibentuknya BPUPKI oleh pemerintah Jepang.", materi: "BPUPKI", levelKognitif: "C2 (Memahami)", nomorSoal: "1", bentukSoal: "Pilihan Ganda", kunciJawaban: "B. Merumuskan dasar negara Indonesia", skorPerSoal: 4, tingkat: "Mudah" },
-    { no: 2, tujuanPembelajaran: "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", indikator: "Menentukan tokoh pendiri bangsa yang pertama kali memperkenalkan istilah 'Pancasila' pada 1 Juni 1945.", materi: "Tokoh Perumus Pancasila", levelKognitif: "C2 (Memahami)", nomorSoal: "2", bentukSoal: "Pilihan Ganda", kunciJawaban: "C. Ir. Soekarno", skorPerSoal: 4, tingkat: "Mudah" },
-    { no: 3, tujuanPembelajaran: "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", indikator: "Menentukan nama panitia kecil yang menyusun naskah Piagam Jakarta pada 22 Juni 1945.", materi: "Panitia Sembilan", levelKognitif: "C2 (Memahami)", nomorSoal: "3", bentukSoal: "Pilihan Ganda", kunciJawaban: "B. Panitia Sembilan", skorPerSoal: 4, tingkat: "Sedang" },
-    { no: 4, tujuanPembelajaran: "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", indikator: "Menentukan lembaga negara yang mengesahkan Pancasila dan UUD 1945 pada 18 Agustus 1945.", materi: "Sidang PPKI", levelKognitif: "C2 (Memahami)", nomorSoal: "4", bentukSoal: "Pilihan Ganda", kunciJawaban: "C. PPKI", skorPerSoal: 4, tingkat: "Sedang" },
-    { no: 5, tujuanPembelajaran: "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", indikator: "Menentukan tanggal resmi pengesahan Pancasila sebagai dasar negara Republik Indonesia.", materi: "Pengesahan Pancasila", levelKognitif: "C2 (Memahami)", nomorSoal: "5", bentukSoal: "Pilihan Ganda", kunciJawaban: "D. 18 Agustus 1945", skorPerSoal: 4, tingkat: "Mudah" },
-    { no: 6, tujuanPembelajaran: "Murid dapat mengurutkan peristiwa penting dalam sejarah lahirnya Pancasila berdasarkan kronologi.", indikator: "Mengurutkan kronologi peristiwa proses lahirnya Pancasila secara tepat (BPUPKI -> Panitia Sembilan -> PPKI).", materi: "Kronologi Sejarah", levelKognitif: "C3 (Menerapkan)", nomorSoal: "6", bentukSoal: "Pilihan Ganda", kunciJawaban: "A. Sidang BPUPKI -> Panitia Sembilan -> Sidang PPKI", skorPerSoal: 4, tingkat: "Sedang" },
-    { no: 7, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Menganalisis alasan perubahan rumusan sila pertama dalam Piagam Jakarta demi persatuan bangsa.", materi: "Piagam Jakarta", levelKognitif: "C4 (Menganalisis)", nomorSoal: "7", bentukSoal: "Pilihan Ganda", kunciJawaban: "B. Menghargai keberagaman dan menjaga persatuan bangsa", skorPerSoal: 4, tingkat: "Sukar" },
-    { no: 8, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Menentukan tokoh pendiri bangsa yang menyampaikan 5 usulan dasar negara dalam sidang BPUPKI.", materi: "Tokoh Perumus Pancasila", levelKognitif: "C4 (Menganalisis)", nomorSoal: "8", bentukSoal: "Pilihan Ganda", kunciJawaban: "D. Mohammad Yamin, Prof. Soepomo, Ir. Soekarno", skorPerSoal: 4, tingkat: "Sedang" },
-    { no: 9, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Menganalisis sikap keteladanan para pendiri bangsa yang mengutamakan musyawarah dan kepentingan bersama.", materi: "Nilai Perjuangan Tokoh", levelKognitif: "C4 (Menganalisis)", nomorSoal: "9", bentukSoal: "Pilihan Ganda", kunciJawaban: "B. Bermusyawarah untuk mencapai mufakat", skorPerSoal: 4, tingkat: "Sedang" },
-    { no: 10, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Menentukan contoh penerapan nilai-nilai perjuangan perumus Pancasila dalam kehidupan sekolah sehari-hari.", materi: "Penerapan Nilai Pancasila", levelKognitif: "C4 (Menganalisis)", nomorSoal: "10", bentukSoal: "Pilihan Ganda", kunciJawaban: "A. Bekerja sama dan menghargai pendapat teman", skorPerSoal: 4, tingkat: "Sedang" },
-    { no: 11, tujuanPembelajaran: "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", indikator: "Jelaskan secara singkat proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia!", materi: "Proses Lahirnya Pancasila", levelKognitif: "C2 (Memahami)", nomorSoal: "1 (Uraian)", bentukSoal: "Uraian", kunciJawaban: "Pancasila dirumuskan melalui sidang BPUPKI (29 Mei - 1 Juni 1945), dilanjutkan pembahasan Panitia Sembilan menghasilkan Piagam Jakarta (22 Juni 1945), dan disahkan oleh PPKI pada 18 Agustus 1945.", skorPerSoal: 12, tingkat: "Sedang" },
-    { no: 12, tujuanPembelajaran: "Murid dapat mengurutkan peristiwa penting dalam sejarah lahirnya Pancasila berdasarkan kronologi.", indikator: "Urutkan peristiwa sejarah lahirnya Pancasila berikut berdasarkan kronologi yang benar!", materi: "Kronologi Sejarah", levelKognitif: "C3 (Menerapkan)", nomorSoal: "2 (Uraian)", bentukSoal: "Uraian", kunciJawaban: "1. Sidang BPUPKI I (29 Mei - 1 Juni 1945)\n2. Pembentukan Panitia Sembilan & Piagam Jakarta (22 Juni 1945)\n3. Proklamasi Kemerdekaan (17 Agustus 1945)\n4. Sidang PPKI & Pengesahan Pancasila (18 Agustus 1945)", skorPerSoal: 12, tingkat: "Sedang" },
-    { no: 13, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Mengapa rumusan sila pertama dalam Piagam Jakarta mengalami perubahan sebelum disahkan? Jelaskan alasannya!", materi: "Piagam Jakarta", levelKognitif: "C4 (Menganalisis)", nomorSoal: "3 (Uraian)", bentukSoal: "Uraian", kunciJawaban: "Perubahan dilakukan atas usul tokoh-tokoh Indonesia timur demi menjaga persatuan, kesatuan, dan toleransi antarumat beragama di Indonesia yang beragam.", skorPerSoal: 12, tingkat: "Sukar" },
-    { no: 14, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Jelaskan peran Ir. Soekarno, Mohammad Yamin, dan Prof. Dr. Soepomo dalam perumusan Pancasila!", materi: "Tokoh Perumus Pancasila", levelKognitif: "C4 (Menganalisis)", nomorSoal: "4 (Uraian)", bentukSoal: "Uraian", kunciJawaban: "Ketiga tokoh menyampaikan gagasan rumusan dasar negara pada sidang BPUPKI. Ir. Soekarno juga memberikan nama 'Pancasila' pada tanggal 1 Juni 1945.", skorPerSoal: 12, tingkat: "Sukar" },
-    { no: 15, tujuanPembelajaran: "Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama.", indikator: "Sebutkan dua contoh penerapan nilai perjuangan para pendiri bangsa yang dapat kamu lakukan di sekolah!", materi: "Nilai-Nilai Pancasila", levelKognitif: "C4 (Menganalisis)", nomorSoal: "5 (Uraian)", bentukSoal: "Uraian", kunciJawaban: "1. Bermusyawarah dalam menentukan ketua kelas atau pembagian tugas kelompok.\n2. Saling menghargai perbedaan pendapat dan membantu teman yang mengalami kesulitan.", skorPerSoal: 12, tingkat: "Sedang" },
+    { no: 1, tujuanPembelajaran: `Murid dapat mengidentifikasi konsep dasar ${topic} pada ${subject}.`, indikator: `Menjelaskan pengertian dan konsep utama ${topic}.`, materi: topic, levelKognitif: "C2 (Memahami)", nomorSoal: "1", bentukSoal: "Pilihan Ganda", kunciJawaban: "A", skorPerSoal: 4, tingkat: "Mudah" },
+    { no: 2, tujuanPembelajaran: `Murid dapat mengidentifikasi prinsip penting ${topic}.`, indikator: `Menentukan ciri-ciri dan unsur utama ${topic}.`, materi: topic, levelKognitif: "C2 (Memahami)", nomorSoal: "2", bentukSoal: "Pilihan Ganda", kunciJawaban: "B", skorPerSoal: 4, tingkat: "Mudah" },
+    { no: 3, tujuanPembelajaran: `Murid dapat mengaplikasikan konsep ${topic} dalam kehidupan sehari-hari.`, indikator: `Menentukan contoh penerapan ${topic} yang tepat.`, materi: topic, levelKognitif: "C3 (Menerapkan)", nomorSoal: "3", bentukSoal: "Pilihan Ganda", kunciJawaban: "C", skorPerSoal: 4, tingkat: "Sedang" },
+    { no: 4, tujuanPembelajaran: `Murid dapat menganalisis permasalahan kontekstual terkait ${topic}.`, indikator: `Menganalisis sebab-akibat atau solusi pada masalah ${topic}.`, materi: topic, levelKognitif: "C4 (Menganalisis)", nomorSoal: "4", bentukSoal: "Pilihan Ganda", kunciJawaban: "A", skorPerSoal: 4, tingkat: "Sedang" },
+    { no: 5, tujuanPembelajaran: `Murid dapat mengevaluasi penerapan materi ${topic}.`, indikator: `Menilai kebenaran langkah atau pernyataan terkait ${topic}.`, materi: topic, levelKognitif: "C4 (Menganalisis)", nomorSoal: "5", bentukSoal: "Pilihan Ganda", kunciJawaban: "D", skorPerSoal: 4, tingkat: "Sukar" },
+    { no: 6, tujuanPembelajaran: `Murid dapat mengurutkan atau mengklasifikasikan bagian-bagian ${topic}.`, indikator: `Mengurutkan proses atau tahapan pada ${topic}.`, materi: topic, levelKognitif: "C3 (Menerapkan)", nomorSoal: "6", bentukSoal: "Pilihan Ganda", kunciJawaban: "B", skorPerSoal: 4, tingkat: "Sedang" },
+    { no: 7, tujuanPembelajaran: `Murid dapat menghubungkan materi ${topic} dengan kehidupan nyata.`, indikator: `Menjelaskan kaitan ${topic} dengan manfaat sehari-hari.`, materi: topic, levelKognitif: "C3 (Menerapkan)", nomorSoal: "7", bentukSoal: "Pilihan Ganda", kunciJawaban: "C", skorPerSoal: 4, tingkat: "Sedang" },
+    { no: 8, tujuanPembelajaran: `Murid dapat membandingkan opsi/solusi dalam materi ${topic}.`, indikator: `Memilih alternatif terbaik dalam persoalan ${topic}.`, materi: topic, levelKognitif: "C4 (Menganalisis)", nomorSoal: "8", bentukSoal: "Pilihan Ganda", kunciJawaban: "A", skorPerSoal: 4, tingkat: "Sukar" },
+    { no: 9, tujuanPembelajaran: `Murid dapat menyimpulkan poin utama materi ${topic}.`, indikator: `Menarik kesimpulan dari deskripsi atau data ${topic}.`, materi: topic, levelKognitif: "C4 (Menganalisis)", nomorSoal: "9", bentukSoal: "Pilihan Ganda", kunciJawaban: "B", skorPerSoal: 4, tingkat: "Sedang" },
+    { no: 10, tujuanPembelajaran: `Murid dapat menerapkan nilai-nilai pembelajaran ${topic}.`, indikator: `Menentukan sikap positif saat mempelajari ${topic}.`, materi: topic, levelKognitif: "C3 (Menerapkan)", nomorSoal: "10", bentukSoal: "Pilihan Ganda", kunciJawaban: "A", skorPerSoal: 4, tingkat: "Mudah" },
+    { no: 11, tujuanPembelajaran: `Murid dapat menjelaskan konsep ${topic} secara komprehensif.`, indikator: `Jelaskan pengertian dan 2 manfaat utama dari ${topic}!`, materi: topic, levelKognitif: "C2 (Memahami)", nomorSoal: "1 (Uraian)", bentukSoal: "Uraian", kunciJawaban: `${topic} adalah bagian dari ${subject} yang dipelajari untuk meningkatkan pemahaman dan keterampilan peserta didik.`, skorPerSoal: 12, tingkat: "Sedang" },
+    { no: 12, tujuanPembelajaran: `Murid dapat menyebutkan tahapan/langkah dalam ${topic}.`, indikator: `Tuliskan langkah-langkah utama dalam mempelajari atau menerapkan ${topic}!`, materi: topic, levelKognitif: "C3 (Menerapkan)", nomorSoal: "2 (Uraian)", bentukSoal: "Uraian", kunciJawaban: `1. Pemahaman konsep dasar ${topic}\n2. Eksplorasi & analisis\n3. Penerapan dalam tugas`, skorPerSoal: 12, tingkat: "Sedang" },
+    { no: 13, tujuanPembelajaran: `Murid dapat menganalisis persoalan nyata terkait ${topic}.`, indikator: `Mengapa pemahaman tentang ${topic} sangat penting bagi kehidupan sehari-hari? Jelaskan!`, materi: topic, levelKognitif: "C4 (Menganalisis)", nomorSoal: "3 (Uraian)", bentukSoal: "Uraian", kunciJawaban: `Pemahaman tentang ${topic} membantu peserta didik berpikir logis, kritis, dan solutif.`, skorPerSoal: 12, tingkat: "Sukar" },
+    { no: 14, tujuanPembelajaran: `Murid dapat memberikan contoh konkret ${topic}.`, indikator: `Berikan 2 contoh konkret penerapan ${topic} di lingkungan sekitar!`, materi: topic, levelKognitif: "C3 (Menerapkan)", nomorSoal: "4 (Uraian)", bentukSoal: "Uraian", kunciJawaban: `Contoh 1: Penerapan di kelas/sekolah\nContoh 2: Penerapan di lingkungan tempat tinggal`, skorPerSoal: 12, tingkat: "Sedang" },
+    { no: 15, tujuanPembelajaran: `Murid dapat merumuskan solusi atas permasalahan ${topic}.`, indikator: `Bagaimana solusi terbaik jika menghadapi kendala terkait ${topic}?`, materi: topic, levelKognitif: "C4 (Menganalisis)", nomorSoal: "5 (Uraian)", bentukSoal: "Uraian", kunciJawaban: `Melakukan analisis penyebab masalah, berdiskusi kelompok, dan menerapkan langkah penyelesaian secara tepat.`, skorPerSoal: 12, tingkat: "Sukar" },
   ];
 }
 
-function getDefaultSoalSumatif(topic = "Sejarah Lahirnya Pancasila"): SoalItem[] {
+function getDefaultSoalSumatif(topic = "Topik Pembelajaran", subject = "Mata Pelajaran"): SoalItem[] {
   return [
     {
       no: 1,
-      pertanyaan: `Tujuan utama dibentuknya BPUPKI oleh pemerintah Jepang pada tanggal 29 April 1945 adalah...`,
+      pertanyaan: `Tujuan utama mempelajari materi ${topic} dalam mata pelajaran ${subject} adalah...`,
       pilihan: [
-        "A. Memilih Presiden dan Wakil Presiden pertama",
-        "B. Mempersiapkan dan merumuskan dasar negara Indonesia",
-        "C. Menyusun teks Proklamasi Kemerdekaan",
-        "D. Membentuk angkatan perang Indonesia"
+        `A. Memahami konsep ${topic} secara mendalam dan benar`,
+        "B. Menghafal tanpa memahami materi",
+        "C. Mengabaikan penerapan materi dalam kehidupan",
+        "D. Mempelajari hal yang tidak berkaitan"
       ],
-      kunciJawaban: "B. Mempersiapkan dan merumuskan dasar negara Indonesia",
+      kunciJawaban: `A. Memahami konsep ${topic} secara mendalam dan benar`,
     },
     {
       no: 2,
-      pertanyaan: `Tokoh pendiri bangsa yang pertama kali mengusulkan istilah 'Pancasila' sebagai nama dasar negara pada tanggal 1 Juni 1945 adalah...`,
+      pertanyaan: `Berikut ini yang merupakan salah satu unsur atau bagian penting dari ${topic} adalah...`,
       pilihan: [
-        "A. Mohammad Yamin",
-        "B. Prof. Dr. Soepomo",
-        "C. Ir. Soekarno",
-        "D. Drs. Mohammad Hatta"
+        `A. Prinsip utama dan penerapan konsep ${topic}`,
+        "B. Hal-hal di luar materi pembelajaran",
+        "C. Kegiatan tanpa tujuan belajar",
+        "D. Penilaian tanpa kriteria yang jelas"
       ],
-      kunciJawaban: "C. Ir. Soekarno",
+      kunciJawaban: `A. Prinsip utama dan penerapan konsep ${topic}`,
     },
     {
       no: 3,
-      pertanyaan: `Panitia kecil yang beranggotakan sembilan orang tokoh pendiri bangsa dan berhasil menyusun naskah Piagam Jakarta pada 22 Juni 1945 disebut...`,
+      pertanyaan: `Contoh penerapan konsep ${topic} dalam kehidupan sehari-hari di sekolah adalah...`,
       pilihan: [
-        "A. Panitia Lapan",
-        "B. Panitia Sembilan",
-        "C. Panitia Persiapan Kemerdekaan",
-        "D. Badan Penyelidik"
+        `A. Menerapkan pemahaman ${topic} saat berdiskusi dan menyelesaikan tugas kelompok`,
+        "B. Acuh tak acuh terhadap penjelasan guru",
+        "C. Mengerjakan tugas lain saat pembelajaran berlangsung",
+        "D. Menyelesaikan soal tanpa membaca petunjuk"
       ],
-      kunciJawaban: "B. Panitia Sembilan",
+      kunciJawaban: `A. Menerapkan pemahaman ${topic} saat berdiskusi dan menyelesaikan tugas kelompok`,
     },
     {
       no: 4,
-      pertanyaan: `Lembaga yang bertugas mengesahkan UUD 1945 dan Pancasila sebagai dasar negara Indonesia pada tanggal 18 Agustus 1945 adalah...`,
+      pertanyaan: `Sikap yang perlu ditunjukkan peserta didik saat berdiskusi kelompok membahas ${topic} adalah...`,
       pilihan: [
-        "A. BPUPKI",
-        "B. KNIP",
-        "C. PPKI",
-        "D. DPR"
+        "A. Saling menghargai pendapat, aktif, dan bekerja sama",
+        "B. Memaksakan pendapat pribadi kepada teman",
+        "C. Pasif dan tidak mau memberikan ide",
+        "D. Mengganggu kelompok lain saat presentasi"
       ],
-      kunciJawaban: "C. PPKI",
+      kunciJawaban: "A. Saling menghargai pendapat, aktif, dan bekerja sama",
     },
     {
       no: 5,
-      pertanyaan: `Pancasila secara resmi disahkan sebagai dasar negara Republik Indonesia pada tanggal...`,
+      pertanyaan: `Langkah awal yang paling tepat sebelum menyelesaikan persoalan pada materi ${topic} adalah...`,
       pilihan: [
-        "A. 1 Juni 1945",
-        "B. 22 Juni 1945",
-        "C. 17 Agustus 1945",
-        "D. 18 Agustus 1945"
+        `A. Membaca dan memahami petunjuk serta konsep dasar ${topic}`,
+        "B. Langsung menjawab tanpa membaca soal",
+        "C. Menanyakan jawaban langsung kepada teman",
+        "D. Mengosongkan lembar kerja"
       ],
-      kunciJawaban: "D. 18 Agustus 1945",
+      kunciJawaban: `A. Membaca dan memahami petunjuk serta konsep dasar ${topic}`,
     },
     {
       no: 6,
-      pertanyaan: `Urutan kronologi peristiwa sejarah lahirnya Pancasila yang benar adalah...`,
+      pertanyaan: `Manfaat utama yang diperoleh peserta didik setelah menguasai materi ${topic} adalah...`,
       pilihan: [
-        "A. Sidang BPUPKI -> Pembentukan Panitia Sembilan -> Sidang PPKI",
-        "B. Sidang PPKI -> Sidang BPUPKI -> Panitia Sembilan",
-        "C. Panitia Sembilan -> Sidang PPKI -> Sidang BPUPKI",
-        "D. Proklamasi -> Sidang BPUPKI -> Panitia Sembilan"
+        `A. Mampu berpikir kritis dan solutif terkait ${topic}`,
+        "B. Hanya mendapatkan nilai tanpa pemahaman",
+        "C. Tidak dapat mengaplikasikan ilmu dalam kehidupan",
+        "D. Mengetahui istilah tanpa makna"
       ],
-      kunciJawaban: "A. Sidang BPUPKI -> Pembentukan Panitia Sembilan -> Sidang PPKI",
+      kunciJawaban: `A. Mampu berpikir kritis dan solutif terkait ${topic}`,
     },
     {
       no: 7,
-      pertanyaan: `Perubahan rumusan sila pertama pada Piagam Jakarta dilakukan sebelum disahkan oleh PPKI bertujuan untuk...`,
+      pertanyaan: `Dalam kegiatan kelompok ${topic}, pembagian peran yang seimbang bermanfaat untuk...`,
       pilihan: [
-        "A. Mempercepat proses kemerdekaan",
-        "B. Menghargai keberagaman dan menjaga persatuan bangsa Indonesia",
-        "C. Mengikuti keinginan penjajah",
-        "D. Mengubah seluruh isi Piagam Jakarta"
+        "A. Mencapai tujuan pembelajaran secara efisien dan gotong royong",
+        "B. Membiarkan satu orang saja yang bekerja",
+        "C. Memperlama waktu pengerjaan tugas",
+        "D. Menimbulkan perselisihan antaranggota"
       ],
-      kunciJawaban: "B. Menghargai keberagaman dan menjaga persatuan bangsa Indonesia",
+      kunciJawaban: "A. Mencapai tujuan pembelajaran secara efisien dan gotong royong",
     },
     {
       no: 8,
-      pertanyaan: `Tiga tokoh utama yang menyampaikan gagasan rumusan dasar negara pada sidang BPUPKI adalah...`,
+      pertanyaan: `Apabila dalam pengerjaan LKPD ${topic} terdapat perbedaan pendapat antaranggota, cara penyelesaian terbaik adalah...`,
       pilihan: [
-        "A. Ir. Soekarno, Mohammad Hatta, Sutan Sjahrir",
-        "B. Mohammad Yamin, Ahmad Soebardjo, Ki Hajar Dewantara",
-        "C. Sayuti Melik, B.M. Diah, Latief Hendraningrat",
-        "D. Mohammad Yamin, Prof. Dr. Soepomo, Ir. Soekarno"
+        "A. Bermusyawarah untuk mencari kesepakatan bersama",
+        "B. Meninggalkan kelompok",
+        "C. Mengabaikan pendapat anggota lain",
+        "D. Menentukan jawaban secara acak"
       ],
-      kunciJawaban: "D. Mohammad Yamin, Prof. Dr. Soepomo, Ir. Soekarno",
+      kunciJawaban: "A. Bermusyawarah untuk mencari kesepakatan bersama",
     },
     {
       no: 9,
-      pertanyaan: `Sikap utama para pendiri bangsa yang patut kita teladani dari peristiwa perubahan rumusan sila pertama adalah...`,
+      pertanyaan: `Penggunaan media pembelajaran pada materi ${topic} bertujuan untuk...`,
       pilihan: [
-        "A. Memaksakan kehendak pribadi",
-        "B. Bermusyawarah dan jiwa besar mengutamakan persatuan bangsa",
-        "C. Mementingkan kelompok sendiri",
-        "D. Menolak perbedaan pendapat"
+        `A. Mempermudah pemahaman konsep ${topic} secara visual dan kontekstual`,
+        "B. Membingungkan peserta didik saat belajar",
+        "C. Mengurangi waktu belajar di kelas",
+        "D. Menggantikan peran guru secara penuh"
       ],
-      kunciJawaban: "B. Bermusyawarah dan jiwa besar mengutamakan persatuan bangsa",
+      kunciJawaban: `A. Mempermudah pemahaman konsep ${topic} secara visual dan kontekstual`,
     },
     {
       no: 10,
-      pertanyaan: `Contoh penerapan nilai-nilai perjuangan para perumus Pancasila dalam kehidupan sekolah sehari-hari adalah...`,
+      pertanyaan: `Umpan balik yang diberikan guru setelah evaluasi ${topic} berfungsi untuk...`,
       pilihan: [
-        "A. Bermusyawarah dalam pembagian tugas kelompok dan menghargai teman",
-        "B. Bersaing secara tidak sehat antar teman kelas",
-        "C. Mementingkan kelompok sendiri saat piket kelas",
-        "D. Memilih-milih teman bermain berdasarkan latar belakang"
+        "A. Mengetahui kekuatan dan bagian yang perlu diperbaiki dalam belajar",
+        "B. Memberikan hukuman kepada peserta didik",
+        "C. Menilai tanpa memberikan penjelasan",
+        "D. Menghentikan proses pembelajaran"
       ],
-      kunciJawaban: "A. Bermusyawarah dalam pembagian tugas kelompok dan menghargai teman",
+      kunciJawaban: "A. Mengetahui kekuatan dan bagian yang perlu diperbaiki dalam belajar",
     },
     {
       no: 11,
-      pertanyaan: `[Soal Uraian 1] Jelaskan secara singkat proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia!`,
-      kunciJawaban: "Pancasila dirumuskan melalui sidang BPUPKI I (29 Mei - 1 Juni 1945), disempurnakan oleh Panitia Sembilan dalam naskah Piagam Jakarta (22 Juni 1945), dan secara resmi disahkan oleh PPKI pada tanggal 18 Agustus 1945 setelah penyesuaian sila pertama.",
+      pertanyaan: `[Soal Uraian 1] Jelaskan pengertian dan pemahaman kalian mengenai materi ${topic}!`,
+      kunciJawaban: `Materi ${topic} pada mata pelajaran ${subject} membahas konsep-konsep penting yang harus dipahami peserta didik untuk meningkatkan pemahaman dan keterampilan kritis.`,
     },
     {
       no: 12,
-      pertanyaan: `[Soal Uraian 2] Urutkan peristiwa penting berikut sesuai kronologi sejarah yang benar:\n• Piagam Jakarta\n• Sidang BPUPKI I\n• Sidang PPKI\n• Proklamasi Kemerdekaan Indonesia`,
-      kunciJawaban: "1. Sidang BPUPKI I (29 Mei - 1 Juni 1945)\n2. Piagam Jakarta (22 Juni 1945)\n3. Proklamasi Kemerdekaan Indonesia (17 Agustus 1945)\n4. Sidang PPKI (18 Agustus 1945)",
+      pertanyaan: `[Soal Uraian 2] Sebutkan 2 contoh penerapan materi ${topic} dalam kehidupan sehari-hari!`,
+      kunciJawaban: `1. Penerapan di lingkungan sekolah saat berdiskusi dan menyelesaikan penugasan ${topic}.\n2. Penerapan di lingkungan masyarakat dalam memecahkan masalah kontekstual.`,
     },
     {
       no: 13,
-      pertanyaan: `[Soal Uraian 3] Mengapa rumusan sila pertama dalam Piagam Jakarta mengalami perubahan sebelum Pancasila disahkan oleh PPKI? Jelaskan dampaknya bagi persatuan Indonesia!`,
-      kunciJawaban: "Rumusan sila pertama diubah menjadi 'Ketuhanan Yang Maha Esa' atas usul tokoh-tokoh Indonesia timur demi menjaga persatuan bangsa dan menghargai keberagaman agama seluruh rakyat Indonesia.",
+      pertanyaan: `[Soal Uraian 3] Mengapa pemahaman tentang ${topic} sangat penting bagi peserta didik? Jelaskan pendapatmu!`,
+      kunciJawaban: `Karena pemahaman tentang ${topic} melatih pola pikir yang analitis, kritis, dan memberikan landasan pengetahuan yang kuat pada ${subject}.`,
     },
     {
       no: 14,
-      pertanyaan: `[Soal Uraian 4] Jelaskan peran Ir. Soekarno, Mohammad Yamin, dan Prof. Dr. Soepomo dalam proses perumusan dasar negara!`,
-      kunciJawaban: "Mohammad Yamin, Prof. Dr. Soepomo, dan Ir. Soekarno menyampaikan gagasan dasar negara pada sidang BPUPKI. Ir. Soekarno juga mengenalkan istilah 'Pancasila' pada tanggal 1 Juni 1945.",
+      pertanyaan: `[Soal Uraian 4] Tuliskan langkah-langkah atau proses pengerjaan tugas kelompok saat mempelajari ${topic}!`,
+      kunciJawaban: "1. Membaca petunjuk LKPD\n2. Melakukan pembagian tugas kelompok\n3. Mengumpulkan data/informasi\n4. Menyusun hasil dan presentasi.",
     },
     {
       no: 15,
-      pertanyaan: `[Soal Uraian 5] Sebutkan dua contoh penerapan nilai-nilai perjuangan para pendiri bangsa yang dapat kamu lakukan di lingkungan sekolah!`,
-      kunciJawaban: "1. Saling menghargai pendapat teman saat berdiskusi menentukan kegiatan kelas.\n2. Bekerja sama dengan rukun saat tugas kelompok tanpa membeda-bedakan latar belakang teman.",
+      pertanyaan: `[Soal Uraian 5] Bagaimana cara kalian merefleksikan hasil belajar setelah menyelesaikan materi ${topic}?`,
+      kunciJawaban: "Dengan mengevaluasi poin materi yang sudah dipahami, mencatat kendala yang dihadapi, serta membuat rencana perbaikan belajar ke depan.",
     },
   ];
 }
 
-function getDefaultRefleksiGuru(): RefleksiItem[] {
+function getDefaultRefleksiGuru(topic = "Topik Pembelajaran"): RefleksiItem[] {
   return [
-    { no: 1, pertanyaan: "Apakah seluruh peserta didik telah memahami proses sejarah lahirnya Pancasila dan tokoh-tokohnya?", catatan: "Sebagian besar murid (sekitar 88%) memahami proses perumusan dan tokoh perumus dengan baik melalui media visual timeline." },
-    { no: 2, pertanyaan: "Apa kendala utama yang dihadapi selama pelaksanaan kegiatan inti pembelajaran berbasis PBL?", catatan: "Manajemen alokasi waktu saat presentasi kelompok perlu ditertibkan agar seluruh kelompok memiliki waktu yang cukup." },
-    { no: 3, pertanyaan: "Langkah perbaikan apa yang akan diterapkan pada sesi pembelajaran berikutnya?", catatan: "Menggunakan penanda waktu visual (timer) dan memperbanyak kartu gambar sejarah interaktif." },
+    { no: 1, pertanyaan: `Apakah seluruh peserta didik telah memahami materi ${topic} dengan baik?`, catatan: `Sebagian besar murid memahami konsep ${topic} melalui media pembelajaran dan diskusi kelompok.` },
+    { no: 2, pertanyaan: `Apa kendala utama yang dihadapi selama pelaksanaan pembelajaran ${topic}?`, catatan: "Manajemen alokasi waktu saat diskusi dan presentasi kelompok perlu dioptimalkan." },
+    { no: 3, pertanyaan: "Langkah perbaikan apa yang akan diterapkan pada sesi pembelajaran berikutnya?", catatan: "Memberikan pembimbingan terfokus pada kelompok yang memerlukan bantuan serta menggunakan penanda waktu visual." },
   ];
 }
 
-function getDefaultRefleksiSiswa(): RefleksiItem[] {
+function getDefaultRefleksiSiswa(topic = "Topik Pembelajaran"): RefleksiItem[] {
   return [
-    { no: 1, pertanyaan: "Bagaimana perasaan kalian setelah mempelajari sejarah lahirnya Pancasila hari ini?", catatan: "Sangat senang dan bangga karena memahami perjuangan para pendiri bangsa dalam merumuskan dasar negara." },
-    { no: 2, pertanyaan: "Bagian mana dari kegiatan pembelajaran yang paling menarik bagi kalian?", catatan: "Saat mengamati video sejarah, berdiskusi dalam kelompok menyusun timeline, dan presentasi di depan kelas." },
-    { no: 3, pertanyaan: "Hal penting apa yang dapat kalian teladani dari sikap para pendiri bangsa?", catatan: "Sikap bermusyawarah, saling menghargai perbedaan, dan mengutamakan persatuan Indonesia di atas kepentingan pribadi." },
+    { no: 1, pertanyaan: `Bagaimana perasaan kalian setelah mempelajari materi ${topic} hari ini?`, catatan: `Sangat senang dan antusias karena dapat memahami materi ${topic} dengan cara yang interaktif.` },
+    { no: 2, pertanyaan: "Bagian mana dari kegiatan pembelajaran yang paling kalian sukai?", catatan: "Saat berdiskusi dalam kelompok, mengerjakan LKPD, dan mempresentasikan hasil di depan kelas." },
+    { no: 3, pertanyaan: `Hal penting apa yang berhasil kalian pahami dari pembelajaran ${topic} hari ini?`, catatan: `Memahami konsep utama ${topic} serta penerapannya secara nyata dalam kehidupan sehari-hari.` },
   ];
 }
 
@@ -406,9 +412,10 @@ function ensureModuleStructure(mod: any): TeachingModule {
   const iden = mod.identifikasi || {};
   const desain = mod.desainPembelajaran || {};
 
-  const subject = safeString(mod.subject, "Pendidikan Pancasila");
-  const topic = safeString(mod.title || gen.topik || core.tujuanPembelajaran, "Sejarah Lahirnya Pancasila");
+  const subject = safeString(mod.subject, "Mata Pelajaran");
+  const topic = safeString(mod.title || gen.topik || core.tujuanPembelajaran, "Topik Pembelajaran");
   const modelName = safeString(mod.learningModel || mod.modelPembelajaran || desain.praktikPedagogis?.model, "Problem Based Learning (PBL)");
+  const moduleType = (safeString(mod.moduleType || mod.category, "Intrakurikuler") === "Kokurikuler" ? "Kokurikuler" : "Intrakurikuler");
 
   let actTable: ActivityTableRow[] = Array.isArray(mod.activitiesTable) && mod.activitiesTable.length > 0
     ? mod.activitiesTable.map((r: any, idx: number) => ({
@@ -417,7 +424,7 @@ function ensureModuleStructure(mod: any): TeachingModule {
         kegiatan: safeString(r.kegiatan || r.kegiatanSiswaGuru, "-"),
         alokasiWaktu: safeString(r.alokasiWaktu, "15 Menit"),
       }))
-    : getDefaultActivitiesTable(act, modelName);
+    : getDefaultActivitiesTable(act, modelName, subject, topic, moduleType);
 
   let rubFormatif: RubrikFormatifItem[] = Array.isArray(mod.rubrikFormatif) && mod.rubrikFormatif.length > 0
     ? mod.rubrikFormatif.map((r: any) => ({
@@ -427,7 +434,7 @@ function ensureModuleStructure(mod: any): TeachingModule {
         cukup: safeString(r.cukup || r.skor1, "Cukup (Skor 1 / 2)"),
         perluBimbingan: safeString(r.perluBimbingan, "Perlu Bimbingan (Skor 1)"),
       }))
-    : getDefaultRubrikFormatif(topic);
+    : getDefaultRubrikFormatif(topic, subject);
 
   let rubSumatif: RubrikSumatifItem[] = Array.isArray(mod.rubrikSumatif) && mod.rubrikSumatif.length > 0
     ? mod.rubrikSumatif.map((r: any) => ({
@@ -436,7 +443,7 @@ function ensureModuleStructure(mod: any): TeachingModule {
         skorMaks: typeof r.skorMaks === "number" ? r.skorMaks : 25,
         pedoman: safeString(r.pedoman, "Pedoman Penskoran"),
       }))
-    : getDefaultRubrikSumatif(topic);
+    : getDefaultRubrikSumatif(topic, subject);
 
   let rubAsLearning: RubrikFormatifItem[] = Array.isArray(mod.rubrikAsLearning) && mod.rubrikAsLearning.length > 0
     ? mod.rubrikAsLearning.map((r: any) => ({
@@ -451,9 +458,9 @@ function ensureModuleStructure(mod: any): TeachingModule {
   let kisiKisi: KisiKisiItem[] = Array.isArray(mod.kisiKisiSumatif) && mod.kisiKisiSumatif.length > 0
     ? mod.kisiKisiSumatif.map((r: any, idx: number) => ({
         no: r.no || idx + 1,
-        tujuanPembelajaran: safeString(r.tujuanPembelajaran, "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila."),
+        tujuanPembelajaran: safeString(r.tujuanPembelajaran, `Murid dapat memahami dan menganalisis ${topic} pada ${subject}.`),
         indikator: safeString(r.indikator, "Indikator Soal"),
-        materi: safeString(r.materi, "Sejarah Lahirnya Pancasila"),
+        materi: safeString(r.materi, topic),
         levelKognitif: safeString(r.levelKognitif || r.tingkat, idx < 5 ? "C2 (Memahami)" : (idx < 10 ? "C4 (Menganalisis)" : "C3 (Menerapkan)")),
         bentukSoal: safeString(r.bentukSoal, idx < 10 ? "Pilihan Ganda" : "Uraian"),
         nomorSoal: safeString(r.nomorSoal, `${idx + 1}`),
@@ -470,7 +477,7 @@ function ensureModuleStructure(mod: any): TeachingModule {
         pilihan: Array.isArray(r.pilihan) ? r.pilihan.map((p: any) => safeString(p, "")) : undefined,
         kunciJawaban: safeString(r.kunciJawaban, "A"),
       }))
-    : getDefaultSoalSumatif(topic);
+    : getDefaultSoalSumatif(topic, subject);
 
   let refGuru: RefleksiItem[] = Array.isArray(mod.refleksiGuru) && mod.refleksiGuru.length > 0
     ? mod.refleksiGuru.map((r: any, idx: number) => ({
@@ -478,7 +485,7 @@ function ensureModuleStructure(mod: any): TeachingModule {
         pertanyaan: safeString(r.pertanyaan, "Pertanyaan Refleksi Evaluasi Guru"),
         catatan: safeString(r.catatan, "-"),
       }))
-    : getDefaultRefleksiGuru();
+    : getDefaultRefleksiGuru(topic);
 
   let refSiswa: RefleksiItem[] = Array.isArray(mod.refleksiSiswa) && mod.refleksiSiswa.length > 0
     ? mod.refleksiSiswa.map((r: any, idx: number) => ({
@@ -486,89 +493,112 @@ function ensureModuleStructure(mod: any): TeachingModule {
         pertanyaan: safeString(r.pertanyaan, "Pertanyaan Refleksi Peserta Didik"),
         catatan: safeString(r.catatan, "-"),
       }))
-    : getDefaultRefleksiSiswa();
+    : getDefaultRefleksiSiswa(topic);
+
+  const isPancasila = subject.toLowerCase().includes("pancasila") || topic.toLowerCase().includes("pancasila");
 
   return {
     id: safeString(mod.id, "mod_" + Date.now()),
-    title: safeString(mod.title || gen.topik, "Sejarah Lahirnya Pancasila"),
-    moduleType: (safeString(mod.moduleType || mod.category, "Intrakurikuler") === "Kokurikuler" ? "Kokurikuler" : "Intrakurikuler"),
+    title: safeString(mod.title || gen.topik, topic),
+    moduleType: moduleType,
     subject: subject,
-    targetClass: safeString(mod.targetClass || mod.gradeClass, "Kelas V / Fase C"),
-    approach: (safeString(mod.approach, "Deep Learning") as "Deep Learning" | "STEM" | "Kombinasi Deep Learning & STEM"),
+    targetClass: safeString(mod.targetClass || mod.gradeClass, "Kelas IV / Fase B"),
+    approach: (safeString(mod.approach, "Kombinasi Deep Learning & STEM") as "Deep Learning" | "STEM" | "Kombinasi Deep Learning & STEM"),
     learningModel: modelName,
     allocationJP: safeString(mod.allocationJP || mod.timeAllocation, "2 x 35 Menit (70 Menit)"),
     generalInfo: {
       instansi: safeString(gen.instansi || mod.instansi, "SD Negeri 1 Merdeka"),
       semester: safeString(gen.semester, "1 (Satu)"),
-      bab: safeString(gen.bab, "1 / Pancasila dalam Kehidupanku"),
-      topik: safeString(gen.topik || mod.title, "Sejarah Lahirnya Pancasila"),
+      bab: safeString(gen.bab, "Bab 1"),
+      topik: safeString(gen.topik || mod.title, topic),
       tahunAjaran: safeString(gen.tahunAjaran, "2026/2027"),
-      kompetensiAwal: safeString(gen.kompetensiAwal || iden.pengetahuanAwal || "Murid kelas V telah mengenal lima sila Pancasila dan simbol Garuda Pancasila, namun belum memahami kronologi proses lahirnya Pancasila.", "-"),
-      profilPelajarPancasila: safeStringArray(gen.profilPelajarPancasila || ["Keimanan dan Ketakwaan terhadap Tuhan YME", "Kewargaan", "Penalaran Kritis", "Kolaborasi", "Komunikasi", "Kemandirian"]),
-      saranaPrasarana: safeString(gen.saranaPrasarana || "Ruang Kelas, Papan Tulis, Laptop, LCD/Proyektor, Speaker, PowerPoint Interaktif, Video Pembelajaran, LKPD, Bahan Ajar Bergambar", "-"),
+      kompetensiAwal: safeString(gen.kompetensiAwal || iden.pengetahuanAwal, `Murid telah memiliki pemahaman dasar terkait materi ${topic} pada ${subject}.`),
+      profilPelajarPancasila: safeStringArray(gen.profilPelajarPancasila || ["Bernalar Kritis", "Gotong Royong", "Mandiri", "Kreatif"]),
+      saranaPrasarana: safeString(gen.saranaPrasarana, "Buku Paket, Proyektor, Kartu Gambar, LKPD, Laptop"),
       targetPesertaDidik: safeString(gen.targetPesertaDidik || mod.targetSiswa, "Reguler / Tipikal (26 Murid)"),
     },
     identifikasi: {
-      kesiapanKognitif: safeString(iden.kesiapanKognitif, "Murid kelas V berada pada fase operasional konkret menuju operasional formal, sehingga mulai mampu memahami hubungan sebab akibat, menganalisis peristiwa sejarah secara sederhana, serta menghubungkan peristiwa sejarah dengan kehidupan masa kini."),
-      pengetahuanAwal: safeString(iden.pengetahuanAwal, "Sebagian besar murid telah mengenal Pancasila sebagai dasar negara dan menghafalkan lima sila Pancasila. Namun, sebagian besar belum memahami proses lahirnya Pancasila, pembentukan BPUPKI/PPKI, Panitia Sembilan, dan Piagam Jakarta."),
-      kebutuhanBelajar: safeString(iden.kebutuhanBelajar, "Murid membutuhkan media visual berupa video sejarah, gambar tokoh perumus, timeline, PowerPoint interaktif, bahan ajar bergambar, serta kesempatan berdiskusi kelompok (diferensiasi proses & produk)."),
-      jenisPengetahuan: safeString(iden.jenisPengetahuan, "Pengetahuan Faktual (mengenal tokoh perumus, BPUPKI, PPKI, tanggal penting), Konseptual (memahami proses perumusan & pengesahan, makna perubahan sila pertama), dan Prosedural (menyusun kronologi timeline & presentasi)."),
-      relevansiKesulitan: safeString(iden.relevansiKesulitan, "Materi memiliki tingkat relevansi sangat tinggi dalam membentuk karakter nasionalisme dan persatuan. Tingkat kesulitan sedang, dimudahkan melalui media visual, garis waktu, dan diskusi kelompok."),
-      strukturMateri: safeString(iden.strukturMateri, "Disusun menggunakan alur Problem Based Learning (PBL): Mengamati peristiwa sejarah -> Mengidentifikasi masalah -> Berdiskusi usulan dasar negara -> Menganalisis perubahan Piagam Jakarta -> Menyimpulkan makna lahirnya Pancasila."),
-      integrasiNilaiKarakter: safeString(iden.integrasiNilaiKarakter, "Kemerdekaan Indonesia, nasionalisme, gotong royong melalui kerja sama kelompok, bernalar kritis melalui analisis sejarah, komunikatif dalam presentasi, serta menghargai keberagaman."),
+      kesiapanKognitif: (safeString(iden.kesiapanKognitif, "").includes("Pancasila") && !isPancasila)
+        ? `Murid berada pada tahap perkembangan kognitif yang mulai mampu berpikir analitis, memahami hubungan sebab-akibat, serta mengaplikasikan konsep ${topic} dalam kegiatan pembelajaran.`
+        : safeString(iden.kesiapanKognitif, `Murid berada pada tahap perkembangan yang mulai mampu berpikir analitis dan memahami konsep ${topic}.`),
+      pengetahuanAwal: (safeString(iden.pengetahuanAwal, "").includes("Pancasila") && !isPancasila)
+        ? `Sebagian besar murid memiliki pemahaman awal mengenai ${topic}, namun memerlukan pendalaman melalui aktivitas eksplorasi dan diskusi kelompok.`
+        : safeString(iden.pengetahuanAwal, `Sebagian besar murid telah memiliki pengetahuan dasar terkait ${topic}.`),
+      kebutuhanBelajar: (safeString(iden.kebutuhanBelajar, "").includes("Pancasila") && !isPancasila)
+        ? `Murid membutuhkan media visual, lembar kerja kelompok (LKPD), serta kesempatan berdiskusi aktif untuk memperkuat pemahaman materi ${topic}.`
+        : safeString(iden.kebutuhanBelajar, `Murid membutuhkan media pembelajaran interaktif dan diskusi kelompok pada materi ${topic}.`),
+      jenisPengetahuan: (safeString(iden.jenisPengetahuan, "").includes("Pancasila") && !isPancasila)
+        ? `Pengetahuan Faktual (fakta dan istilah ${topic}), Konseptual (prinsip utama), dan Prosedural (langkah pengerjaan tugas ${topic}).`
+        : safeString(iden.jenisPengetahuan, `Pengetahuan Faktual, Konseptual, dan Prosedural materi ${topic}.`),
+      relevansiKesulitan: (safeString(iden.relevansiKesulitan, "").includes("Pancasila") && !isPancasila)
+        ? `Materi ${topic} memiliki tingkat relevansi tinggi dalam mengembangkan kemampuan bernalar kritis dan pemecahan masalah.`
+        : safeString(iden.relevansiKesulitan, `Materi ${topic} memiliki relevansi tinggi dalam pembelajaran kontekstual.`),
+      strukturMateri: (safeString(iden.strukturMateri, "").includes("Pancasila") && !isPancasila)
+        ? `Materi disusun sistematis: Apersepsi -> Penyampaian konsep utama ${topic} -> Eksplorasi LKPD -> Presentasi -> Evaluasi sumatif.`
+        : safeString(iden.strukturMateri, `Materi ${topic} disusun secara terstruktur dari orientasi hingga evaluasi.`),
+      integrasiNilaiKarakter: safeString(iden.integrasiNilaiKarakter, "Bernalar kritis, gotong royong melalui kerja kelompok, mandiri, serta komunikatif dalam presentasi."),
     },
     desainPembelajaran: {
-      capaianPembelajaran: safeString(desain.capaianPembelajaran, "Pada akhir Fase C, murid mampu memahami kedudukan dan fungsi Pancasila sebagai dasar negara, pandangan hidup bangsa, dan ideologi negara. Murid mampu menjelaskan proses perumusan dan pengesahan Pancasila serta menunjukkan sikap menghargai jasa para pendiri bangsa."),
-      tujuanPembelajaran: safeString(desain.tujuanPembelajaran || core.tujuanPembelajaran, "• Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia (C2).\n• Murid dapat mengurutkan peristiwa penting dalam sejarah lahirnya Pancasila berdasarkan kronologi (C3).\n• Murid dapat menganalisis peran tokoh-tokoh serta makna perubahan rumusan sila pertama dalam Piagam Jakarta terhadap persatuan bangsa Indonesia (C4).\n• Murid dapat menyajikan hasil diskusi tentang sejarah lahirnya Pancasila dalam bentuk timeline atau presentasi kelompok (P3)."),
-      indikatorTujuanPembelajaran: Array.isArray(desain.indikatorTujuanPembelajaran) ? desain.indikatorTujuanPembelajaran : [
-        "Melalui kegiatan mengamati gambar dan video pembelajaran, murid dapat mengidentifikasi tokoh-tokoh perumus Pancasila dan lembaga perumus dengan tepat.",
-        "Melalui kegiatan membaca bahan ajar dan timeline, murid dapat mengurutkan kronologi peristiwa perumusan hingga pengesahan Pancasila secara runtut.",
-        "Melalui kegiatan diskusi kelompok, murid dapat menganalisis alasan perubahan rumusan sila pertama Piagam Jakarta demi persatuan bangsa secara logis.",
-        "Melalui kegiatan presentasi kelompok, murid dapat menyajikan hasil diskusi secara runtut, percaya diri, dan santun."
-      ],
-      lintasDisiplinIlmu: safeString(desain.lintasDisiplinIlmu, "Bahasa Indonesia: Membaca informasi sejarah, menentukan informasi penting dari bacaan, dan menyampaikan hasil diskusi menggunakan bahasa Indonesia yang runtut dan santun."),
-      topikPembelajaran: safeString(desain.topikPembelajaran, "Sejarah Lahirnya Pancasila melalui kegiatan mengamati, berdiskusi, menganalisis kronologi peristiwa, dan menyelesaikan permasalahan secara kolaboratif."),
+      capaianPembelajaran: (safeString(desain.capaianPembelajaran, "").includes("Pancasila") && !isPancasila)
+        ? `Pada akhir fase, murid mampu memahami, menganalisis, dan mengaplikasikan konsep ${topic} pada ${subject} secara mandiri maupun kolaboratif.`
+        : safeString(desain.capaianPembelajaran, `Pada akhir fase, murid mampu memahami dan menguasai capaian pembelajaran pada materi ${topic}.`),
+      tujuanPembelajaran: (safeString(desain.tujuanPembelajaran || core.tujuanPembelajaran, "").includes("Pancasila") && !isPancasila)
+        ? `• Murid dapat memahami konsep utama ${topic} pada ${subject}.\n• Murid dapat menganalisis dan menyelesaikan persoalan terkait ${topic} melalui LKPD.\n• Murid dapat menyajikan hasil diskusi ${topic} secara percaya diri dan runtut.`
+        : safeString(desain.tujuanPembelajaran || core.tujuanPembelajaran, `• Murid dapat memahami konsep ${topic}.\n• Murid dapat menyelesaikan tugas ${topic} secara kolaboratif.`),
+      indikatorTujuanPembelajaran: Array.isArray(desain.indikatorTujuanPembelajaran) && desain.indikatorTujuanPembelajaran.length > 0
+        ? desain.indikatorTujuanPembelajaran
+        : [
+            `Mengidentifikasi dan menjelaskan konsep dasar ${topic} secara tepat.`,
+            `Menganalisis permasalahan terkait ${topic} bersama kelompok pada LKPD.`,
+            `Menyajikan dan mempresentasikan hasil diskusi materi ${topic} secara komunikatif.`
+          ],
+      lintasDisiplinIlmu: safeString(desain.lintasDisiplinIlmu, `Keterhubungan ${subject} dengan literasi, numerasi, dan kearifan lokal.`),
+      topikPembelajaran: safeString(desain.topikPembelajaran, topic),
       praktikPedagogis: {
-        pendekatan: safeString(desain.praktikPedagogis?.pendekatan, "Deep Learning (Mindful Learning, Meaningful Learning, Joyful Learning)"),
+        pendekatan: safeString(desain.praktikPedagogis?.pendekatan, "Deep Learning"),
         model: safeString(desain.praktikPedagogis?.model || modelName, "Problem Based Learning (PBL)"),
-        metode: safeString(desain.praktikPedagogis?.metode, "Observasi, Tanya jawab, Diskusi kelompok, Eksplorasi, Presentasi, Penugasan (LKPD)"),
+        metode: safeString(desain.praktikPedagogis?.metode, "Observasi, Diskusi kelompok, Presentasi, Penugasan"),
       },
       saranaPrasaranaDetails: {
         sarana: safeString(desain.saranaPrasaranaDetails?.sarana, "Ruang kelas"),
-        prasarana: safeString(desain.saranaPrasaranaDetails?.prasarana, "Papan tulis, Laptop, Speaker, LCD/Proyektor"),
-        media: safeString(desain.saranaPrasaranaDetails?.media, "PowerPoint Interaktif, Video Pembelajaran, Bahan Ajar Bergambar, LKPD"),
-        sumberBelajar: safeString(desain.saranaPrasaranaDetails?.sumberBelajar, "Buku LKS Pendidikan Pancasila Kelas V Kurikulum Merdeka"),
+        prasarana: safeString(desain.saranaPrasaranaDetails?.prasarana, "Papan tulis, Laptop, LCD Proyektor"),
+        media: safeString(desain.saranaPrasaranaDetails?.media, `Slide Presentasi ${topic}, LKPD, Alat Peraga`),
+        sumberBelajar: safeString(desain.saranaPrasaranaDetails?.sumberBelajar, `Buku Siswa ${subject} & Bahan Ajar Guru`),
       },
-      kemitraanPembelajaran: safeString(desain.kemitraanPembelajaran, "• Murid lain dalam kegiatan kolaborasi kelompok.\n• Orang tua dalam memberikan dukungan belajar di rumah, seperti mendampingi murid membaca kembali materi sejarah lahirnya Pancasila serta berdiskusi mengenai penerapan nilai-nilai Pancasila dalam kehidupan sehari-hari."),
+      kemitraanPembelajaran: safeString(desain.kemitraanPembelajaran, "Kolaborasi antarmurid dan pendampingan orang tua di rumah."),
       lingkunganPembelajaran: {
-        iklimKelas: safeString(desain.lingkunganPembelajaran?.iklimKelas, "Nyaman, aman, interaktif, menyenangkan, dan mendorong rasa ingin tahu murid melalui kegiatan eksplorasi."),
-        budayaBelajar: safeString(desain.lingkunganPembelajaran?.budayaBelajar, "Kolaboratif, komunikatif, dan eksploratif. Murid aktif bertanya, berdiskusi, mengamati, serta menemukan informasi secara mandiri maupun kelompok."),
-        sosioEmosional: safeString(desain.lingkunganPembelajaran?.sosioEmosional, "Guru menciptakan suasana pembelajaran yang menghargai setiap pendapat murid, memberikan penguatan positif, membangun rasa percaya diri, serta menumbuhkan kepedulian terhadap teman."),
+        iklimKelas: safeString(desain.lingkunganPembelajaran?.iklimKelas, "Kondusif, menyenangkan, interaktif, dan aman untuk berpendapat."),
+        budayaBelajar: safeString(desain.lingkunganPembelajaran?.budayaBelajar, "Kolaboratif, aktif bertanya, dan saling menghargai."),
+        sosioEmosional: safeString(desain.lingkunganPembelajaran?.sosioEmosional, "Guru memberikan penguatan positif dan membangun rasa percaya diri peserta didik."),
       },
       dplSelected: Array.isArray(desain.dplSelected) ? desain.dplSelected : [1, 2, 3, 4, 5, 6, 8],
       pertanyaanPemantikDetailed: {
-        afektif: safeString(desain.pertanyaanPemantikDetailed?.afektif, '"Bagaimana perasaan kalian jika para pendiri bangsa dahulu tidak mau bermusyawarah dan saling menghargai perbedaan dalam merumuskan dasar negara Indonesia?"'),
-        kognitif: safeString(desain.pertanyaanPemantikDetailed?.kognitif, '"Mengapa rumusan sila pertama dalam Piagam Jakarta mengalami perubahan sebelum Pancasila disahkan? Menurut kalian, mengapa perubahan tersebut penting bagi persatuan Indonesia?"'),
-        psikomotorik: safeString(desain.pertanyaanPemantikDetailed?.psikomotorik, '"Jika kalian diminta menyusun kartu-kartu peristiwa sejarah lahirnya Pancasila, bagaimana cara kalian mengurutkannya agar menjadi kronologi yang benar dan mudah dipahami teman-teman?"'),
+        afektif: safeString(desain.pertanyaanPemantikDetailed?.afektif, `"Bagaimana perasaan kalian saat belajar materi ${topic} bersama kelompok?"`),
+        kognitif: safeString(desain.pertanyaanPemantikDetailed?.kognitif, `"Mengapa pemahaman tentang ${topic} penting dalam kehidupan kita?"`),
+        psikomotorik: safeString(desain.pertanyaanPemantikDetailed?.psikomotorik, `"Bagaimana cara kelompok kalian menyajikan hasil pengerjaan LKPD ${topic}?"`),
       },
     },
     coreComponent: {
-      tujuanPembelajaran: safeString(core.tujuanPembelajaran || "Murid dapat menjelaskan proses perumusan hingga pengesahan Pancasila sebagai dasar negara Indonesia.", "-"),
-      pemahamanBermakna: safeString(core.pemahamanBermakna || "Pancasila lahir melalui musyawarah, kerja sama, dan jiwa besar para pendiri bangsa. Nilai-nilai musyawarah dan persatuan tersebut sangat bermanfaat diterapkan dalam kehidupan sehari-hari.", "-"),
-      pertanyaanPemantik: safeString(core.pertanyaanPemantik || "Mengapa rumusan sila pertama dalam Piagam Jakarta mengalami perubahan sebelum Pancasila disahkan? Mengapa perubahan tersebut penting bagi persatuan Indonesia?", "-"),
+      tujuanPembelajaran: safeString(core.tujuanPembelajaran, `Murid dapat memahami dan mengaplikasikan konsep ${topic} pada ${subject}.`),
+      pemahamanBermakna: safeString(core.pemahamanBermakna, `Pemahaman tentang ${topic} membantu murid berpikir logis, analitis, dan solutif.`),
+      pertanyaanPemantik: safeString(core.pertanyaanPemantik, `Pernahkah kalian menemui atau menggunakan konsep ${topic} dalam kehidupan sehari-hari?`),
     },
     activities: {
-      pendahuluan: safeString(act.pendahuluan, "1. Pembiasaan Budaya Positif: Salam, Doa, Menanyakan kabar & presensi, Menyanyikan lagu nasional 'Garuda Pancasila'.\n2. Apersepsi: Guru mengajak murid mengingat kembali lambang Garuda Pancasila & lima sila Pancasila.\n3. Eksplorasi & Motivasi: Menyampaikan tujuan pembelajaran dan manfaat mempelajari sejarah lahirnya Pancasila.\n4. Ice Breaking: 'Tepuk Konsentrasi'."),
-      inti: safeString(act.inti, "1. Orientasi terhadap Masalah: Guru menampilkan gambar sidang BPUPKI/PPKI & video singkat lahirnya Pancasila.\n2. Mengorganisasi Murid: Penjelasan materi PowerPoint 'Sejarah Lahirnya Pancasila', pembagian kelompok (4-5 orang), dan pembagian LKPD.\n3. Membimbing Penyelidikan: Murid membaca bahan ajar, mengamati timeline kronologi, menyusun urutan peristiwa, dan mendiskusikan perubahan sila pertama Piagam Jakarta.\n4. Menyajikan Hasil: Ice breaking 'Yel-Yel Pancasila' & Presentasi hasil diskusi kelompok di depan kelas.\n5. Analisis & Evaluasi: Menyimpulkan bersama guru dan mengerjakan kuis evaluasi individu."),
-      penutup: safeString(act.penutup, "1. Kesimpulan bersama murid.\n2. Penguatan nilai-nilai Pancasila dan persatuan.\n3. Umpan balik & Refleksi lembar refleksi emosi murid.\n4. Tindak Lanjut: Informasi materi pertemuan berikutnya.\n5. Penutup: Ice breaking 'Tepuk Panca Indera', Doa & Salam Penutup."),
+      pendahuluan: safeString(act.pendahuluan, `1. Guru menyapa murid, berdoa bersama, dan apersepsi materi ${topic}.\n2. Guru menyampaikan tujuan pembelajaran dan pertanyaan pemantik.`),
+      inti: safeString(act.inti, `1. Penjelasan konsep ${topic} dengan media interaktif.\n2. Pembentukan kelompok untuk pengerjaan LKPD ${topic}.\n3. Presentasi hasil diskusi kelompok dan tanggapan.`),
+      penutup: safeString(act.penutup, `1. Merangkum poin penting ${topic}.\n2. Refleksi dan evaluasi sumatif ${topic}.\n3. Doa dan salam penutup.`),
     },
     activitiesTable: actTable,
-    kegiatanAwalText: safeString(mod.kegiatanAwalText, "• Pembiasaan Budaya Positif:\n  - Murid menjawab salam pembuka dari guru.\n  - Murid berdoa sebelum memulai kegiatan pembelajaran.\n  - Murid menjawab pertanyaan guru tentang kabar hari ini & presensi.\n  - Murid menyanyikan lagu nasional 'Garuda Pancasila' untuk meningkatkan rasa cinta tanah air.\n• Apersepsi:\n  - Guru mengajak murid mengingat kembali materi lambang negara Garuda Pancasila.\n  - Guru mengajukan pertanyaan: 'Siapa yang menciptakan rumusan Pancasila?' & 'Apakah Pancasila langsung menjadi dasar negara setelah merdeka?'\n• Eksplorasi & Motivasi:\n  - Guru menyampaikan tujuan pembelajaran dan motivasi: 'Tahukah kalian bahwa dasar negara Indonesia tidak terbentuk dalam satu hari? Hari ini kita akan menjadi peneliti sejarah.'\n• Ice Breaking: 'Tepuk Konsentrasi'"),
-    kegiatanPenutupText: safeString(mod.kegiatanPenutupText, "1. Kesimpulan: Guru mengajak murid menyimpulkan pembelajaran ('Bagaimana proses lahirnya Pancasila?, Siapa tokoh yang berperan?, Mengapa sila pertama mengalami perubahan?').\n2. Penguatan: Guru menegaskan bahwa lahirnya Pancasila merupakan hasil musyawarah, persatuan, dan sikap saling menghargai.\n3. Umpan Balik / Refleksi: Guru membagikan lembar refleksi diri kepada murid & memberikan apresiasi.\n4. Tindak Lanjut: Guru menyampaikan bahwa pada pertemuan berikutnya murid akan mempelajari nilai teladan perumus Pancasila.\n5. Penutup: Ice breaking 'Tepuk Panca Indera', doa penutup, dan salam."),
+    kegiatanAwalText: (safeString(mod.kegiatanAwalText, "").includes("Pancasila") && !isPancasila)
+      ? `• Pembiasaan Budaya Positif & Apersepsi:\n- Guru membuka pelajaran dengan salam dan doa.\n- Guru mengecek kehadiran dan memberikan apersepsi terkait materi ${topic}.\n- Guru menyampaikan tujuan pembelajaran dan pertanyaan pemantik untuk memicu rasa ingin tahu.`
+      : safeString(mod.kegiatanAwalText, `• Pembiasaan Budaya Positif & Apersepsi:\n- Guru membuka pelajaran dengan salam dan doa.\n- Guru mengecek kehadiran dan apersepsi materi ${topic}.`),
+    kegiatanPenutupText: (safeString(mod.kegiatanPenutupText, "").includes("Pancasila") && !isPancasila)
+      ? `1. Kesimpulan: Guru dan murid merangkum poin-poin utama materi ${topic}.\n2. Refleksi & Evaluasi: Mengerjakan kuis evaluasi singkat dan mengisi lembar refleksi emosi.\n3. Penutup: Doa dan salam penutup.`
+      : safeString(mod.kegiatanPenutupText, `1. Kesimpulan bersama murid.\n2. Refleksi dan evaluasi sumatif ${topic}.\n3. Doa dan salam penutup.`),
     assessment: {
-      diagnostik: safeString(ass.diagnostik, "Tes Lisan & Tanya Jawab Apersepsi di awal pembelajaran"),
-      formatif: safeString(ass.formatif, "Penilaian Kinerja / Unjuk Kerja Diskusi Kelompok, Penyusunan Timeline pada LKPD, & Presentasi Lisan"),
-      sumatif: safeString(ass.sumatif, "Tes Tertulis Evaluasi Akhir (Pilihan Ganda & Uraian) pada Lampiran Evaluasi"),
+      diagnostik: safeString(ass.diagnostik, `Tes Lisan Awal Pembelajaran tentang ${topic}`),
+      formatif: safeString(ass.formatif, `Observasi Keaktifan Diskusi & LKPD ${topic}`),
+      sumatif: safeString(ass.sumatif, `Tes Tertulis Evaluasi Akhir ${topic}`),
     },
     assessmentForLearningSummary: mod.assessmentForLearningSummary || {
       tujuan: "Membantu guru dan murid mengetahui pemahaman selama proses belajar.",
@@ -588,72 +618,62 @@ function ensureModuleStructure(mod: any): TeachingModule {
       bentuk: "Pilihan Ganda dan Uraian",
       waktu: "Di akhir pembelajaran",
     },
-    rubrikPenilaian: safeString(mod.rubrikPenilaian, "Rubrik Penilaian Formatif (Tes Lisan & LKPD), Rubrik Penilaian Diri (Refleksi), dan Rubrik Penilaian Evaluasi Sumatif."),
+    rubrikPenilaian: safeString(mod.rubrikPenilaian, "Rubrik Penilaian Formatif, Penilaian Diri, dan Evaluasi Sumatif."),
     rubrikFormatif: rubFormatif,
     rubrikSumatif: rubSumatif,
     rubrikAsLearning: rubAsLearning,
     kisiKisiSumatif: kisiKisi,
     soalSumatifList: soalList,
-    lkpdText: safeString(mod.lkpdText, `LEMBAR KERJA PESERTA DIDIK (LKPD) - LINI MASA SEJARAH LAHIRNYA PANCASILA
+    lkpdText: (safeString(mod.lkpdText, "").includes("SEJARAH LAHIRNYA PANCASILA") && !isPancasila) || !mod.lkpdText
+      ? `LEMBAR KERJA PESERTA DIDIK (LKPD) - ${topic.toUpperCase()}
 
-Materi: Sejarah Lahirnya Pancasila (Bab 1 Pancasila dalam Kehidupanku)
+Mata Pelajaran / Proyek: ${subject}
+Materi Utama: ${topic}
 Nama Kelompok: ........................................
 Anggota Kelompok:
 1. ..................................................... 3. .....................................................
 2. ..................................................... 4. .....................................................
 
 PETUNJUK KERJA:
-1. Bacalah bahan ajar dan amati gambar/video tentang sejarah lahirnya Pancasila dengan cermat!
-2. Diskusikan bersama kelompokmu untuk menyusun garis waktu (timeline) peristiwa penting di bawah ini!
-3. Jawablah pertanyaan analisis di bawah ini dengan tepat dan lengkap!
+1. Bacalah bahan ajar dan amati penjelasan guru mengenai ${topic} dengan cermat!
+2. Diskusikan bersama kelompokmu untuk menyelesaikan tugas dan pertanyaan di bawah ini!
+3. Tuliskan hasil diskusi pada tempat yang telah disediakan secara rapi dan jelas!
 
-TUGAS 1: LINI MASA SEJARAH LAHIRNYA PANCASILA
-Silakan tempelkan / tuliskan deskripsi peristiwa pada kotak tanggal berikut:
-• 29 Mei - 1 Juni 1945 : Sidang pertama BPUPKI (Usulan dasar negara oleh Moh. Yamin, Prof. Soepomo, dan Ir. Soekarno).
-• 1 Juni 1945 : Ir. Soekarno menyampaikan pidato memperkenalkan istilah 'Pancasila'.
-• 22 Juni 1945 : Panitia Sembilan merumuskan naskah Piagam Jakarta.
-• 10 - 16 Juli 1945 : Sidang kedua BPUPKI membahas rancangan UUD.
-• 18 Agustus 1945 : PPKI mengesahkan Pancasila sebagai Dasar Negara dengan perubahan rumusan sila pertama.
+TUGAS 1: EKSPLORASI KONSEP ${topic.toUpperCase()}
+Silakan tuliskan poin-poin penting atau konsep utama dari materi ${topic} yang telah kamu pelajari!
 
-TUGAS 2: MENGENAL TOKOH PENDIRI BANGSA & PERUBAHAN RUMUSAN SILA PERTAMA
-1. Bagaimana bunyi Sila Pertama Pancasila yang terdapat dalam naskah Piagam Jakarta?
-   Jawaban: "Ketuhanan dengan kewajiban menjalankan syariat Islam bagi pemeluk-pemeluknya"
-2. Mengapa rumusan sila pertama tersebut diubah pada sidang PPKI tanggal 18 Agustus 1945?
-   Jawaban: Demi menjaga persatuan dan kesatuan bangsa Indonesia yang memiliki beragam agama dan suku.
-3. Nilai luhur atau sikap teladan apa yang ditunjukkan oleh para pendiri bangsa saat mereka setuju untuk mengubah rumusan tersebut? Sebutkan minimal dua!
-   Jawaban: Memprioritaskan persatuan nasional, toleransi, jiwa besar, dan bermusyawarah mufakat.`),
-    bahanAjarText: safeString(mod.bahanAjarText, `BAHAN AJAR: SEJARAH LAHIRNYA PANCASILA (DASAR NEGARA REPUBLIK INDONESIA)
+TUGAS 2: ANALISIS & PEMECAHAN MASALAH
+1. Jelaskan pemahaman kelompokmu mengenai ${topic}!
+2. Sebutkan dan jelaskan 2 contoh penerapan ${topic} dalam kehidupan sehari-hari!
+3. Bagaimana cara terbaik untuk menyelesaikan permasalahan terkait ${topic}? Tuliskan alasan kelompokmu!`
+      : mod.lkpdText,
+    bahanAjarText: (safeString(mod.bahanAjarText, "").includes("SEJARAH LAHIRNYA PANCASILA") && !isPancasila) || !mod.bahanAjarText
+      ? `BAHAN AJAR: ${topic.toUpperCase()} (${subject.toUpperCase()})
 
-1. Latar Belakang Perumusan Pancasila:
-Pancasila lahir melalui proses panjang perjuangan para pendiri bangsa. Pada tanggal 29 April 1945, Jepang membentuk BPUPKI (Badan Penyelidik Usaha-Usaha Persiapan Kemerdekaan Indonesia) untuk mempersiapkan kemerdekaan Indonesia.
+1. Pengantar Materi ${topic}:
+Materi ${topic} pada kegiatan ${moduleType} ${subject} dirancang untuk membantu murid memahami konsep secara mendalam dan kontekstual.
 
-2. Tokoh Perumus Pancasila (Sidang BPUPKI I: 29 Mei - 1 Juni 1945):
-Beberapa tokoh memberikan gagasan tentang dasar negara Indonesia:
-- Mohammad Yamin (29 Mei 1945): Mengusulkan Peri Kebangsaan, Peri Kemanusiaan, Peri Ketuhanan, Peri Kerakyatan, Keadilan Rakyat.
-- Prof. Dr. Soepomo (31 Mei 1945): Mengemukakan gagasan tentang negara yang berdasarkan persatuan, kekeluargaan, dan keseimbangan lahir batin.
-- Ir. Soekarno (1 Juni 1945): Mengusulkan lima dasar negara yaitu Kebangsaan Indonesia, Internasionalisme/Perikemanusiaan, Mufakat/Demokrasi, Kesejahteraan Sosial, Ketuhanan yang Berkebudayaan. Ir. Soekarno memperkenalkan istilah "Pancasila".
+2. Konsep Utama & Indikator Penting:
+Dalam mempelajari ${topic}, murid diajak untuk mengamati, menganalisis, dan mengaplikasikan poin-poin utama secara sistematis.
 
-3. Panitia Sembilan dan Piagam Jakarta (22 Juni 1945):
-Panitia Sembilan dibentuk untuk menyempurnakan usulan dasar negara. Pada tanggal 22 Juni 1945, Panitia Sembilan menghasilkan naskah "Piagam Jakarta" (Jakarta Charter) yang memuat rumusan awal Pancasila.
-
-4. Pengesahan Pancasila (18 Agustus 1945):
-Setelah Indonesia memproklamasikan kemerdekaan pada 17 Agustus 1945, keesokan harinya tanggal 18 Agustus 1945, PPKI mengadakan sidang. Dalam sidang tersebut, rumusan sila pertama dalam Piagam Jakarta diubah menjadi "Ketuhanan Yang Maha Esa" demi menjaga persatuan bangsa Indonesia yang beragam. Sejak saat itu, Pancasila resmi disahkan sebagai dasar negara Republik Indonesia.`),
-    mediaPembelajaranText: safeString(mod.mediaPembelajaranText, `MEDIA PEMBELAJARAN:
-A. Video Pembelajaran Sejarah Lahirnya Pancasila: https://youtu.be/HL2Bbo0ldtM (Proses Lahirnya Pancasila)
-B. Bahan Tayang Presentation (PPT Interactive): https://canva.link/ta161v6jxjz735g
-C. Media Konkret: Kartu Foto Tokoh Pendiri Bangsa (Ir. Soekarno, Moh. Yamin, Prof. Soepomo, Moh. Hatta), Poster Garuda Pancasila, dan Lembar Timeline Sejarah.`),
+3. Penerapan Konsep dalam Kehidupan Sehari-hari:
+Pemahaman mengenai ${topic} sangat bermanfaat dalam mengembangkan pola pikir kritis, kreatif, serta solutif dalam menghadapi berbagai situasi nyata.`
+      : mod.bahanAjarText,
+    mediaPembelajaranText: (safeString(mod.mediaPembelajaranText, "").includes("Sejarah Lahirnya Pancasila") && !isPancasila) || !mod.mediaPembelajaranText
+      ? `MEDIA PEMBELAJARAN: ${subject} - ${topic}
+A. Presentation Slides / PowerPoint Interaktif ${topic}
+B. Lembar Kerja Peserta Didik (LKPD) Digital & Cetak
+C. Alat Peraga & Media Visual Pendukung Pembelajaran ${topic}`
+      : mod.mediaPembelajaranText,
     remedialPengayaanText: mod.remedialPengayaanText || {
-      remedial: "Remedial diberikan kepada murid yang belum mencapai tujuan pembelajaran melalui pendampingan khusus guru, penjelasan ulang menggunakan media gambar/video/timeline sejarah, serta latihan mengurutkan kronologi peristiwa perumusan Pancasila.",
-      pengayaan: "Pengayaan diberikan kepada murid yang telah mencapai tujuan pembelajaran melalui tugas membuat peta konsep/infografis sederhana sejarah lahirnya Pancasila serta analisis penerapan nilai-nilai Pancasila dalam kehidupan sehari-hari.",
+      remedial: `Remedial diberikan kepada murid yang belum mencapai tujuan pembelajaran melalui bimbingan perorangan/kelompok serta penjelasan ulang materi ${topic}.`,
+      pengayaan: `Pengayaan diberikan kepada murid yang telah tuntas berupa penugasan pendalaman konsep ${topic} yang lebih kompleks.`,
     },
-    glosarium: safeString(mod.glosarium, `GLOSARIUM:
-• Pancasila: Dasar negara Republik Indonesia yang menjadi pedoman dalam kehidupan berbangsa dan bernegara.
-• BPUPKI: Badan Penyelidik Usaha-Usaha Persiapan Kemerdekaan Indonesia yang dibentuk untuk mempersiapkan kemerdekaan.
-• Panitia Sembilan: Panitia kecil yang merumuskan dasar negara dan menghasilkan naskah Piagam Jakarta pada 22 Juni 1945.
-• Piagam Jakarta: Naskah perumusan dasar negara hasil Panitia Sembilan sebelum mengalami perubahan sila pertama.
-• PPKI: Panitia Persiapan Kemerdekaan Indonesia yang bertugas mempersiapkan pelaksanaan kemerdekaan dan mengesahkan Pancasila pada 18 Agustus 1945.
-• Musyawarah: Proses berdiskusi bersama untuk mencapai kesepakatan demi kepentingan bersama.
-• Persatuan: Sikap menjaga kebersamaan dan menghargai perbedaan demi keutuhan bangsa Indonesia.`),
+    glosarium: (safeString(mod.glosarium, "").includes("Pancasila") && !isPancasila) || !mod.glosarium
+      ? `GLOSARIUM:
+• ${topic}: Topik utama pembelajaran dalam ${subject}.
+• Konsep Utama: Gagasan pokok yang menjadi landasan pemahaman.`
+      : mod.glosarium,
     refleksiGuru: refGuru,
     refleksiSiswa: refSiswa,
   };
@@ -690,11 +710,27 @@ export const TeachingModuleGeneratorView: React.FC<TeachingModuleGeneratorViewPr
   >("PjBL (Project Based Learning)");
   const [allocationJP, setAllocationJP] = useState("2 x 35 Menit (2 JP)");
 
+  const handleModuleTypeChange = (newType: "Intrakurikuler" | "Kokurikuler") => {
+    setModuleType(newType);
+    if (newType === "Kokurikuler") {
+      setSubject("Bahasa Indonesia & IPAS");
+      setMateri("Proyek Kokurikuler: Pengolahan Sampah Organik & Daur Ulang");
+    } else {
+      setSubject("Bahasa Indonesia");
+      setMateri("Teks Cerita Rakyat & Amanat Moral");
+    }
+  };
+
   const handleGenerateModuleAI = async () => {
     setIsGenerating(true);
     try {
       const prompt = `Anda adalah konsultan pengembang Modul Ajar Kurikulum Merdeka Indonesia tingkat Sekolah Dasar.
 Buatkan draft MODUL AJAR ${moduleType.toUpperCase()} yang sangat lengkap, terstruktur, dan siap cetak.
+
+PENTING & WAJIB (STRICT ATURAN STERIL):
+1. Seluruh isi modul (termasuk Informasi Umum, Identifikasi, Desain Pembelajaran, Kegiatan, Asesmen, Rubrik, Kisi-Kisi, Soal Evaluasi, LKPD, Bahan Ajar, Media Pembelajaran, Refleksi, Remedial/Pengayaan, Glosarium) WAJIB 100% MURNI dan BERSIH HANYA berfokus pada Mata Pelajaran/Proyek (${subject}) dan Topik/Materi (${materi}).
+2. DILARANG KERAS menyisipkan atau menyertakan materi dari mata pelajaran lain (seperti Pendidikan Pancasila / Sejarah Lahirnya Pancasila / BPUPKI / PPKI / Piagam Jakarta) KECUALI jika subjek yang diisi oleh pengguna memang Pendidikan Pancasila!
+3. Modul ini harus menjadi modul baru yang benar-benar BERSIH dari residu atau sisa dari pembuatan modul sebelumnya.
 
 Detail Input:
 - Jenis Modul: ${moduleType}
@@ -709,7 +745,7 @@ Detail Input:
 
 Format Output HARUS berupa JSON murni tanpa markdown lain:
 {
-  "title": "Judul Modul Ajar - ${materi}",
+  "title": "Modul Ajar ${moduleType} - ${subject} (${materi})",
   "moduleType": "${moduleType}",
   "subject": "${subject}",
   "targetClass": "${targetClass}",
@@ -717,44 +753,65 @@ Format Output HARUS berupa JSON murni tanpa markdown lain:
   "learningModel": "${learningModel}",
   "allocationJP": "${allocationJP}",
   "generalInfo": {
-    "kompetensiAwal": "Deskripsi kemahiran awal murid sebelum masuk topik",
+    "kompetensiAwal": "Deskripsi kemahiran awal murid sebelum masuk topik ${materi}",
     "profilPelajarPancasila": ["Bernalar Kritis", "Gotong Royong", "Kreatif"],
-    "saranaPrasarana": "Buku bacaan, laptop, proyektor, LKPD",
+    "saranaPrasarana": "Buku bacaan ${subject}, laptop, proyektor, LKPD ${materi}",
     "targetPesertaDidik": "Reguler (26 Murid)"
   },
+  "identifikasi": {
+    "kesiapanKognitif": "Penjelasan kesiapan kognitif murid terkait ${materi}",
+    "pengetahuanAwal": "Pengetahuan awal murid tentang ${materi}",
+    "kebutuhanBelajar": "Kebutuhan belajar murid untuk materi ${materi}",
+    "jenisPengetahuan": "Pengetahuan Faktual, Konseptual, dan Prosedural ${materi}",
+    "relevansiKesulitan": "Relevansi dan tingkat kesulitan ${materi}",
+    "strukturMateri": "Struktur urutan penyampaian materi ${materi}",
+    "integrasiNilaiKarakter": "Nilai karakter yang diintegrasikan"
+  },
+  "desainPembelajaran": {
+    "capaianPembelajaran": "Capaian Pembelajaran ${subject} topik ${materi}",
+    "tujuanPembelajaran": "Tujuan Pembelajaran ${materi}",
+    "indikatorTujuanPembelajaran": ["Indikator 1", "Indikator 2", "Indikator 3"],
+    "lintasDisiplinIlmu": "Keterkaitan ${subject} dengan disiplin ilmu lain",
+    "topikPembelajaran": "${materi}",
+    "praktikPedagogis": { "pendekatan": "${approach}", "model": "${learningModel}", "metode": "Diskusi, Observasi, Presentasi" },
+    "saranaPrasaranaDetails": { "sarana": "Ruang kelas", "prasarana": "Laptop, LCD", "media": "Slide ${materi}, LKPD", "sumberBelajar": "Buku Paket ${subject}" }
+  },
   "coreComponent": {
-    "tujuanPembelajaran": "Murid mampu menganalisis konsep dan memecahkan masalah melalui unjuk karya.",
-    "pemahamanBermakna": "Konsep materi bermanfaat langsung dalam kehidupan nyata.",
-    "pertanyaanPemantik": "Pertanyaan yang memicu rasa ingin tahu siswa"
+    "tujuanPembelajaran": "Tujuan utama pembelajaran ${materi}",
+    "pemahamanBermakna": "Pemahaman bermakna dari materi ${materi}",
+    "pertanyaanPemantik": "Pertanyaan pemantik untuk materi ${materi}"
   },
   "activitiesTable": [
-    { "no": 1, "tahap": "Kegiatan Pembukaan (Mindful Learning)", "kegiatan": "Guru menyapa murid dengan kesadaran penuh...", "alokasiWaktu": "15 Menit" },
-    { "no": 2, "tahap": "Kegiatan Inti (Meaningful - Sintaks ${learningModel})", "kegiatan": "Murid berdiskusi dalam kelompok mengerjakan LKPD...", "alokasiWaktu": "45 Menit" },
-    { "no": 3, "tahap": "Kegiatan Penutup (Joyful Reflection)", "kegiatan": "Murid dan guru merangkum serta melakukan refleksi...", "alokasiWaktu": "10 Menit" }
+    { "no": 1, "tahap": "Kegiatan Pembukaan (Mindful Learning)", "kegiatan": "Guru menyapa murid dan apersepsi materi ${materi}...", "alokasiWaktu": "15 Menit" },
+    { "no": 2, "tahap": "Kegiatan Inti (Meaningful - Sintaks ${learningModel})", "kegiatan": "Murid berdiskusi dalam kelompok mengerjakan LKPD ${materi}...", "alokasiWaktu": "45 Menit" },
+    { "no": 3, "tahap": "Kegiatan Penutup (Joyful Reflection)", "kegiatan": "Merangkum dan merefleksi pembelajaran ${materi}...", "alokasiWaktu": "10 Menit" }
   ],
   "assessment": {
-    "diagnostik": "Tanya jawab lisan diawal",
-    "formatif": "Observasi keaktifan kelompok & lembar unjuk kerja LKPD",
-    "sumatif": "Tes tertulis analisis konsep"
+    "diagnostik": "Tes lisan diawal tentang ${materi}",
+    "formatif": "Observasi diskusi & LKPD ${materi}",
+    "sumatif": "Tes tertulis evaluasi ${materi}"
   },
   "rubrikFormatif": [
-    { "kriteria": "Pemahaman Konsep & Diskusi", "sangatBaik": "Sangat aktif & paham penuh", "baik": "Aktif & paham", "cukup": "Cukup aktif", "perluBimbingan": "Pasif & butuh bimbingan" }
+    { "kriteria": "Pemahaman Konsep ${materi}", "sangatBaik": "Sangat paham...", "baik": "Paham...", "cukup": "Cukup...", "perluBimbingan": "Perlu bimbingan..." }
   ],
   "rubrikSumatif": [
-    { "kriteria": "Penguasaan Materi Tertulis", "indikator": "Mampu menjawab soal PG dan Isian", "skorMaks": 50, "pedoman": "Skor sesuai bobot jawaban benar" }
+    { "kriteria": "Penguasaan Materi ${materi}", "indikator": "Menjawab soal evaluasi...", "skorMaks": 50, "pedoman": "Pedoman skoring..." }
   ],
   "kisiKisiSumatif": [
-    { "no": 1, "indikator": "Menganalisis dan menentukan komposisi nilai uang...", "levelKognitif": "C3 (L2 - Menerapkan)", "bentukSoal": "Pilihan Ganda", "nomorSoal": "1", "kunciJawaban": "A", "skorPerSoal": 4, "tingkat": "Sedang" }
+    { "no": 1, "tujuanPembelajaran": "...", "indikator": "Menentukan...", "materi": "${materi}", "levelKognitif": "C3", "bentukSoal": "Pilihan Ganda", "nomorSoal": "1", "kunciJawaban": "A", "skorPerSoal": 4, "tingkat": "Sedang" }
   ],
   "soalSumatifList": [
-    { "no": 1, "pertanyaan": "Soal cerita kontekstual & numeratif nyata (misal: 'Jika Andi membeli sebuah sepatu dengan uang 1 lembar 50.000, 2 lembar 10.000, dan 1 lembar 5.000...'). Wajib hasilkan total 10 soal: 5 Pilihan Ganda (ada opsi A,B,C,D), 3 Isian Singkat, 2 Uraian HOTS.", "pilihan": ["A. Rp 75.000,00", "B. Rp 70.000,00", "C. Rp 65.000,00", "D. Rp 80.000,00"], "kunciJawaban": "A. Rp 75.000,00" }
+    { "no": 1, "pertanyaan": "Soal tentang ${materi} dalam mata pelajaran ${subject}...", "pilihan": ["A. Opsi A", "B. Opsi B", "C. Opsi C", "D. Opsi D"], "kunciJawaban": "A" }
   ],
-  "lkpdText": "Lembar Kerja Peserta Didik (LKPD)...",
+  "lkpdText": "Isi lengkap Lembar Kerja Peserta Didik (LKPD) khusus materi ${materi}...",
+  "bahanAjarText": "Isi lengkap Bahan Ajar khusus materi ${materi}...",
+  "mediaPembelajaranText": "Isi lengkap Media Pembelajaran khusus materi ${materi}...",
+  "glosarium": "Glosarium istilah penting materi ${materi}...",
   "refleksiGuru": [
-    { "no": 1, "pertanyaan": "Apakah siswa mencapai KKTP?", "catatan": "88% siswa tuntas..." }
+    { "no": 1, "pertanyaan": "Apakah seluruh siswa paham materi ${materi}?", "catatan": "Catatan refleksi..." }
   ],
   "refleksiSiswa": [
-    { "no": 1, "pertanyaan": "Bagaimana perasaanmu setelah belajar?", "catatan": "Sangat senang..." }
+    { "no": 1, "pertanyaan": "Bagaimana perasaanmu belajar ${materi}?", "catatan": "Catatan siswa..." }
   ]
 }`;
 
@@ -780,6 +837,8 @@ Format Output HARUS berupa JSON murni tanpa markdown lain:
           learningModel: parsed.learningModel || learningModel,
           allocationJP: parsed.allocationJP || allocationJP,
           generalInfo: parsed.generalInfo || {},
+          identifikasi: parsed.identifikasi || {},
+          desainPembelajaran: parsed.desainPembelajaran || {},
           coreComponent: parsed.coreComponent || {},
           activitiesTable: parsed.activitiesTable || [],
           assessment: parsed.assessment || {},
@@ -788,6 +847,12 @@ Format Output HARUS berupa JSON murni tanpa markdown lain:
           kisiKisiSumatif: parsed.kisiKisiSumatif || [],
           soalSumatifList: parsed.soalSumatifList || [],
           lkpdText: parsed.lkpdText || "",
+          bahanAjarText: parsed.bahanAjarText || "",
+          mediaPembelajaranText: parsed.mediaPembelajaranText || "",
+          kegiatanAwalText: parsed.kegiatanAwalText || "",
+          kegiatanPenutupText: parsed.kegiatanPenutupText || "",
+          remedialPengayaanText: parsed.remedialPengayaanText || {},
+          glosarium: parsed.glosarium || "",
           refleksiGuru: parsed.refleksiGuru || [],
           refleksiSiswa: parsed.refleksiSiswa || [],
         };
@@ -802,67 +867,138 @@ Format Output HARUS berupa JSON murni tanpa markdown lain:
     } catch (err: any) {
       console.error("AI Generation failed, creating fallback template:", err);
       const fallbackRawMod = {
-          id: "mod_" + Date.now(),
-          title: `Modul Ajar Kurikulum Merdeka - ${materi}`,
-          moduleType,
-          subject,
-          targetClass,
-          approach,
-          learningModel,
-          allocationJP,
-          generalInfo: {
-            instansi: schoolIdentity.schoolName || "SD Negeri 1 Merdeka",
-            faseKelas: `${targetClass}`,
-            elemen: "Pemahaman Konsep & Keterampilan Proses",
-            kompetensiAwal: `Siswa memiliki pemahaman dasar mengenai materi ${materi}.`,
-            profilPancasila: "Beriman, Bertakwa kepada Tuhan YME, Bergotong Royong, Bernalar Kritis, Mandiri",
-            sarpras: "Buku Paket, Proyektor, Kartu Gambar, LKPD, Laptop",
-            targetSiswa: "Siswa Reguler / Tipikal (28-32 Murid)",
-            metodePembelajaran: `${learningModel} dengan Pendekatan ${approach}`,
-          },
-          coreComponent: {
-            tujuanPembelajaran: `1. Peserta didik mampu memahami konsep utama ${materi} secara mendalam.\n2. Peserta didik mampu mengaplikasikan pemahaman tentang ${materi} dalam menyelesaikan soal dan persoalan kehidupan sehari-hari.`,
-            pemahamanBermakna: `Pemahaman tentang ${materi} membantu peserta didik berpikir logis, analitis, dan solutif dalam kehidupan sehari-hari.`,
-            pertanyaanPemantik: `1. Pernahkah kalian menemui contoh ${materi} di lingkungan sekitar?\n2. Bagaimana cara kalian menyelesaikan permasalahan terkait ${materi}?`,
-            persiapanPembelajaran: "Membuat rencana modul, menyiapkan lembar kerja peserta didik (LKPD), alat peraga, dan instrumen asesmen.",
-          },
-          activitiesTable: [
-            {
-              tahap: "Pendahuluan (15 Menit)",
-              kegiatanSiswaGuru: "Guru membuka pelajaran dengan salam, berdoa bersama, memeriksa kehadiran, dan melakukan apersepsi terkait materi sebelumnya. Guru menyampaikan tujuan pembelajaran dan pertanyaan pemantik.",
-              alokasiWaktu: "15 Menit",
-            },
-            {
-              tahap: "Kegiatan Inti (50 Menit)",
-              kegiatanSiswaGuru: `Guru menjelaskan materi ${materi} dengan alat peraga/media. Siswa dibagi menjadi beberapa kelompok heterogen untuk berdiskusi mengerjakan LKPD. Guru membimbing kelompok dan mengobservasi keaktifan siswa. Masing-masing kelompok mempresentasikan hasil diskusi di depan kelas.`,
-              alokasiWaktu: "50 Menit",
-            },
-            {
-              tahap: "Penutup (15 Menit)",
-              kegiatanSiswaGuru: "Guru bersama siswa menyimpulkan poin-poin penting pembelajaran. Guru memberikan umpan balik, kuis singkat/asesmen formatif, serta refleksi perasaan belajar siswa sebelum ditutup dengan doa.",
-              alokasiWaktu: "15 Menit",
-            },
+        id: "mod_" + Date.now(),
+        title: `Modul Ajar ${moduleType} - ${subject} (${materi})`,
+        moduleType,
+        subject,
+        targetClass,
+        approach,
+        learningModel,
+        allocationJP,
+        generalInfo: {
+          instansi: schoolIdentity.schoolName || "SD Negeri 1 Merdeka",
+          faseKelas: `${targetClass}`,
+          topik: materi,
+          kompetensiAwal: `Peserta didik memiliki pemahaman dasar mengenai materi ${materi} pada mata pelajaran ${subject}.`,
+          profilPelajarPancasila: ["Bernalar Kritis", "Gotong Royong", "Mandiri", "Kreatif"],
+          saranaPrasarana: "Buku Paket, Proyektor, Kartu Gambar, LKPD, Laptop",
+          targetPesertaDidik: "Peserta Didik Reguler / Tipikal (26-28 Murid)",
+        },
+        identifikasi: {
+          kesiapanKognitif: `Peserta didik berada pada tahap perkembangan yang mulai mampu berpikir analitis dan menyelesaikan tugas ${materi}.`,
+          pengetahuanAwal: `Sebagian besar peserta didik telah memiliki pengetahuan dasar terkait ${materi}.`,
+          kebutuhanBelajar: `Peserta didik membutuhkan media visual dan diskusi kelompok pada materi ${materi}.`,
+          jenisPengetahuan: `Pengetahuan Faktual, Konseptual, dan Prosedural materi ${materi}.`,
+          relevansiKesulitan: `Materi ${materi} sangat relevan dengan pengembangan keterampilan bernalar kritis.`,
+          strukturMateri: `Materi disajikan secara terstruktur: Apersepsi -> Penjelasan Konsep ${materi} -> Diskusi LKPD -> Evaluasi.`,
+          integrasiNilaiKarakter: "Bernalar Kritis, Gotong Royong, Mandiri, Komunikatif",
+        },
+        desainPembelajaran: {
+          capaianPembelajaran: `Pada akhir fase, peserta didik mampu memahami, menganalisis, dan mengaplikasikan materi ${materi} pada ${subject}.`,
+          tujuanPembelajaran: `1. Peserta didik mampu memahami konsep utama ${materi} secara mendalam.\n2. Peserta didik mampu mengaplikasikan pemahaman tentang ${materi} dalam menyelesaikan soal dan persoalan kehidupan sehari-hari.`,
+          indikatorTujuanPembelajaran: [
+            `Mengidentifikasi dan menjelaskan konsep dasar ${materi} secara tepat.`,
+            `Menganalisis permasalahan terkait ${materi} bersama kelompok pada LKPD.`,
+            `Menyajikan dan mempresentasikan hasil diskusi materi ${materi} secara komunikatif.`
           ],
-          assessment: {
-            sikap: "Observasi Profil Pelajar Pancasila (Gotong royong, Bernalar kritis, Mandiri)",
-            pengetahuan: "Tes Tertulis (Pilihan Ganda & Uraian) pada Kuis / Asesmen Sumatif",
-            keterampilan: "Penilaian Kinerja / Unjuk Kerja Diskusi Kelompok dan Presentasi LKPD",
+          lintasDisiplinIlmu: `Keterhubungan ${subject} dengan literasi, numerasi, dan kearifan lokal.`,
+          topikPembelajaran: materi,
+          praktikPedagogis: {
+            pendekatan: approach,
+            model: learningModel,
+            metode: "Observasi, Diskusi Kelompok, Presentasi, Penugasan",
           },
-          lkpdText: `LEMBAR KERJA PESERTA DIDIK (LKPD)\nMateri: ${materi}\n\nNama Kelompok: ........................\nAnggota: 1. ......... 2. ......... 3. ......... 4. .........\n\nPETUNJUK:\n1. Bacalah petunjuk soal dengan cermat.\n2. Diskusikan bersama teman sekelompokmu untuk menyelesaikan pertanyaan di bawah ini.\n3. Tuliskan jawaban pada tempat yang telah disediakan.\n\nSOAL DISKUSI:\n1. Jelaskan pemahaman kalian mengenai materi ${materi}!\n2. Berikan 3 contoh penerapan ${materi} dalam kehidupan sehari-hari!`,
-          refleksiGuru: [
-            { no: 1, pertanyaan: "Apakah seluruh peserta didik mencapai Tujuan Pembelajaran?", catatan: "Sesuai observasi & asesmen formatif" },
-            { no: 2, pertanyaan: "Kendala apa yang dihadapi selama kegiatan pembelajaran?", catatan: "Manajemen waktu saat diskusi" },
-          ],
-          refleksiSiswa: [
-            { no: 1, pertanyaan: "Bagian materi mana yang paling kamu sukai?", catatan: "Saat diskusi kelompok dan praktikum" },
-            { no: 2, pertanyaan: "Apakah kamu memahami penjelasan materi hari ini?", catatan: "Sangat memahami" },
-          ],
-        };
+          saranaPrasaranaDetails: {
+            sarana: "Ruang Kelas",
+            prasarana: "Papan Tulis, Laptop, LCD Proyektor",
+            media: `Slide Presentasi ${materi}, LKPD, Alat Peraga`,
+            sumberBelajar: `Buku Siswa ${subject} & Bahan Ajar Guru`,
+          },
+          kemitraanPembelajaran: "Kolaborasi antarmurid dan pendampingan orang tua di rumah.",
+          lingkunganPembelajaran: {
+            iklimKelas: "Kondusif, menyenangkan, interaktif, dan aman untuk berpendapat.",
+            budayaBelajar: "Kolaboratif, aktif bertanya, dan saling menghargai.",
+            sosioEmosional: "Guru memberikan penguatan positif dan membangun rasa percaya diri peserta didik.",
+          },
+        },
+        coreComponent: {
+          tujuanPembelajaran: `1. Peserta didik mampu memahami konsep utama ${materi} secara mendalam.\n2. Peserta didik mampu mengaplikasikan pemahaman tentang ${materi} dalam menyelesaikan soal dan persoalan kehidupan sehari-hari.`,
+          pemahamanBermakna: `Pemahaman tentang ${materi} membantu peserta didik berpikir logis, analitis, dan solutif dalam kehidupan sehari-hari.`,
+          pertanyaanPemantik: `1. Pernahkah kalian menemui contoh ${materi} di lingkungan sekitar?\n2. Bagaimana cara kalian menyelesaikan permasalahan terkait ${materi}?`,
+        },
+        activitiesTable: [
+          {
+            no: 1,
+            tahap: "Pendahuluan (15 Menit)",
+            kegiatan: `Guru membuka pelajaran dengan salam, berdoa bersama, memeriksa kehadiran, dan apersepsi terkait materi ${materi}. Guru menyampaikan tujuan pembelajaran dan pertanyaan pemantik.`,
+            alokasiWaktu: "15 Menit",
+          },
+          {
+            no: 2,
+            tahap: "Kegiatan Inti (50 Menit)",
+            kegiatan: `Guru menjelaskan materi ${materi} dengan alat peraga/media. Siswa dibagi menjadi kelompok heterogen untuk berdiskusi mengerjakan LKPD ${materi}. Guru membimbing kelompok dan mengobservasi keaktifan siswa. Setiap kelompok mempresentasikan hasil diskusi.`,
+            alokasiWaktu: "50 Menit",
+          },
+          {
+            no: 3,
+            tahap: "Penutup (15 Menit)",
+            kegiatan: `Guru bersama siswa menyimpulkan poin-poin penting pembelajaran ${materi}. Guru memberikan umpan balik, kuis singkat/asesmen sumatif, serta refleksi perasaan belajar siswa sebelum ditutup dengan doa.`,
+            alokasiWaktu: "15 Menit",
+          },
+        ],
+        assessment: {
+          diagnostik: `Tes Lisan Awal Pembelajaran tentang ${materi}`,
+          formatif: `Observasi Keaktifan Diskusi & Lembar Kinerja LKPD ${materi}`,
+          sumatif: `Tes Tertulis Evaluasi Akhir (Pilihan Ganda & Uraian) ${materi}`,
+        },
+        lkpdText: `LEMBAR KERJA PESERTA DIDIK (LKPD) - ${materi.toUpperCase()}
+Mata Pelajaran / Proyek: ${subject}
+Materi: ${materi}
 
-        const newMod = ensureModuleStructure(fallbackRawMod);
-        onSaveModules([newMod, ...teachingModules]);
-        setSelectedModule(newMod);
-        setIsAiModalOpen(false);
+Nama Kelompok: ........................
+Anggota: 1. ......... 2. ......... 3. ......... 4. .........
+
+PETUNJUK KERJA:
+1. Bacalah petunjuk soal dengan cermat.
+2. Diskusikan bersama teman sekelompokmu untuk menyelesaikan pertanyaan di bawah ini.
+3. Tuliskan jawaban pada tempat yang telah disediakan.
+
+SOAL DISKUSI:
+1. Jelaskan pemahaman kalian mengenai materi ${materi}!
+2. Berikan 3 contoh penerapan ${materi} dalam kehidupan sehari-hari!
+3. Bagaimana solusi terbaik kelompokmu dalam menyelesaikan permasalahan terkait ${materi}?`,
+        bahanAjarText: `BAHAN AJAR: ${materi.toUpperCase()} (${subject.toUpperCase()})
+
+1. Pengantar Konsep ${materi}:
+Materi ini memberikan pemahaman dasar dan penerapan praktis ${materi} dalam pembelajaran ${subject}.
+
+2. Ringkasan Poin Utama:
+- Konsep dan definisi utama ${materi}.
+- Ciri-ciri dan unsur penting yang wajib dipahami.
+
+3. Contoh Aplikasi Nyata:
+Penerapan ${materi} dalam kehidupan sehari-hari untuk melatih pola pikir kritis dan mandiri.`,
+        mediaPembelajaranText: `MEDIA PEMBELAJARAN: ${subject} - ${materi}
+A. Slide Presentasi / PowerPoint Interaktif ${materi}
+B. Lembar Kerja Peserta Didik (LKPD) Cetak/Digital
+C. Gambar / Alat Peraga Kontekstual ${materi}`,
+        glosarium: `GLOSARIUM:
+• ${materi}: Topik utama pembelajaran dalam ${subject}.
+• Konsep Utama: Gagasan pokok yang menjadi landasan pemahaman.`,
+        refleksiGuru: [
+          { no: 1, pertanyaan: `Apakah seluruh peserta didik mencapai Tujuan Pembelajaran ${materi}?`, catatan: "Sesuai observasi & asesmen formatif" },
+          { no: 2, pertanyaan: "Kendala apa yang dihadapi selama kegiatan pembelajaran?", catatan: "Manajemen waktu saat diskusi kelompok" },
+        ],
+        refleksiSiswa: [
+          { no: 1, pertanyaan: `Bagian materi ${materi} mana yang paling kamu sukai?`, catatan: "Saat diskusi kelompok dan eksplorasi LKPD" },
+          { no: 2, pertanyaan: "Apakah kamu memahami penjelasan materi hari ini?", catatan: "Sangat memahami" },
+        ],
+      };
+
+      const newMod = ensureModuleStructure(fallbackRawMod);
+      onSaveModules([newMod, ...teachingModules]);
+      setSelectedModule(newMod);
+      setIsAiModalOpen(false);
     } finally {
       setIsGenerating(false);
     }
@@ -1645,7 +1781,7 @@ Format Output HARUS berupa JSON murni tanpa markdown lain:
                 <label className="block font-semibold mb-1">Jenis Modul Ajar</label>
                 <select
                   value={moduleType}
-                  onChange={(e) => setModuleType(e.target.value as any)}
+                  onChange={(e) => handleModuleTypeChange(e.target.value as any)}
                   className="w-full p-2 border rounded-lg bg-white font-bold text-emerald-900"
                 >
                   <option value="Intrakurikuler">Modul Ajar Intrakurikuler (Mata Pelajaran Regular)</option>
