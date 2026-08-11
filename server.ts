@@ -387,7 +387,7 @@ app.post("/api/ai/generate-image", async (req, res) => {
           },
         });
 
-        // Try standard Imagen 3 models
+        // Try Imagen models if supported
         const imagenModels = ["imagen-3.0-generate-002", "imagen-3.0-fast-generate-001"];
         for (const modelName of imagenModels) {
           try {
@@ -405,8 +405,8 @@ app.post("/api/ai/generate-image", async (req, res) => {
               generatedImageBase64 = `data:image/jpeg;base64,${response.generatedImages[0].image.imageBytes}`;
               break;
             }
-          } catch (modelErr) {
-            console.warn(`Imagen model ${modelName} call failed:`, modelErr);
+          } catch (modelErr: any) {
+            // Silently catch if Imagen endpoint is not available on this API key
           }
         }
       } catch (genAiErr) {
