@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 import pptxgen from "pptxgenjs";
 import { CanvaTemplateItem, CPTPItem, SchoolIdentity, MediaBananaItem, MediaBananaSlide, AISettings } from "../../types";
-import { generateAIContent } from "../../lib/aiHelper";
+import { generateAIContent, generateAIImage } from "../../lib/aiHelper";
 import { STORAGE_KEYS, loadStoredData, saveStoredData } from "../../lib/storage";
 
 interface CanvaStudioViewProps {
@@ -84,6 +84,7 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
     colorPalette: string[];
     layoutDescription: string;
     suggestedCaptions: string[];
+    imageUrl?: string;
   } | null>(null);
 
   // Gemini Omni Video Studio State
@@ -337,6 +338,21 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
         }
       ];
 
+      // Generate Real AI Image using AI Agent Nano Banana 2 if mediaType is gambar or nano_banana_2 engine selected
+      let generatedImageUrl: string | undefined = undefined;
+      if (mediaType === "gambar" || selectedAiEngine === "nano_banana_2") {
+        try {
+          const imgPrompt = `Educational vector graphic illustration for primary school students, topic: ${topic}, subject: ${subject}, style: ${styleTheme}, vibrant school colors, clean infographic layout, high definition 8k`;
+          const imgResult = await generateAIImage({
+            prompt: imgPrompt,
+            manualApiKey: aiSettings?.manualApiKey,
+          });
+          generatedImageUrl = imgResult.imageUrl;
+        } catch (imgErr) {
+          console.warn("AI Image Agent Nano Banana 2 generation warning:", imgErr);
+        }
+      }
+
       const newItem: MediaBananaItem = {
         id: `banana-${Date.now()}`,
         title: parsed?.title || `Media Ajar AI Banana: ${topic}`,
@@ -347,11 +363,12 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
         promptUsed: effectivePrompt,
         styleTheme: `${styleTheme} (${
           selectedAiEngine === "nano_banana_2"
-            ? "Nano Banana 2 Image"
+            ? "Nano Banana 2 Image Agent"
             : selectedAiEngine === "gemini_omni"
             ? "Gemini Omni Video"
             : "Gemini Flash"
         })`,
+        imageUrl: generatedImageUrl,
         animationKeyframes: parsed?.animationKeyframes || [
           `Keyframe 1: Pembukaan animasi ${topic} dengan karakter masuk`,
           `Keyframe 2: Zoom in ke bagian inti proses ${topic}`,
@@ -417,11 +434,24 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
         if (match) parsed = JSON.parse(match[0]);
       }
 
+      const visualPrompt =
+        parsed?.visualPrompt ||
+        `3D rendered educational diagram of ${materiTopic}, vibrant colors, cute SD student character, soft shadows, clear labels, clean vector style.`;
+
+      let generatedImgUrl: string | undefined = undefined;
+      try {
+        const imgResult = await generateAIImage({
+          prompt: visualPrompt,
+          manualApiKey: aiSettings?.manualApiKey,
+        });
+        generatedImgUrl = imgResult.imageUrl;
+      } catch (imgErr) {
+        console.warn("Nano Banana 2 image generation error:", imgErr);
+      }
+
       setGeneratedNanoImageData({
         title: parsed?.title || `Grafis Nano Banana 2: ${materiTopic}`,
-        visualPrompt:
-          parsed?.visualPrompt ||
-          `3D rendered educational diagram of ${materiTopic}, vibrant colors, cute SD student character, soft shadows, clear labels, clean vector style.`,
+        visualPrompt: visualPrompt,
         colorPalette: parsed?.colorPalette || ["#F59E0B", "#10B981", "#3B82F6", "#EC4899"],
         layoutDescription:
           parsed?.layoutDescription ||
@@ -430,7 +460,8 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
           `Bagian Utama dari ${materiTopic}`,
           `Proses Kerja Alami & Manfaat Utama`,
           `Kesimpulan Ringkas untuk Kelas`
-        ]
+        ],
+        imageUrl: generatedImgUrl,
       });
     } catch (err: any) {
       console.error("Error generating Nano Banana 2 image:", err);
@@ -1408,6 +1439,41 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                           </p>
                         </div>
 
+                        {/* Real AI Generated Image Container */}
+                        {activeMediaItem.imageUrl && (
+                          <div className="space-y-3">
+                            <div className="relative group overflow-hidden rounded-2xl border-2 border-amber-300 bg-slate-950 shadow-2xl text-center">
+                              <img
+                                src={activeMediaItem.imageUrl}
+                                alt={activeMediaItem.materiTopic}
+                                className="w-full max-h-[500px] object-contain mx-auto transition-transform duration-300 group-hover:scale-102"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-md text-amber-300 px-3 py-1 rounded-full text-[10px] font-black border border-amber-400/50 shadow-lg">
+                                🖼️ Nano Banana 2 AI Image
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <a
+                                href={activeMediaItem.imageUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
+                              >
+                                <span>Buka Ukuran Penuh</span>
+                              </a>
+                              <a
+                                href={activeMediaItem.imageUrl}
+                                download={`NanoBanana2_${activeMediaItem.materiTopic.replace(/\s+/g, "_")}.jpg`}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>Unduh Gambar AI</span>
+                              </a>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Interactive Vector Graphic Points Board */}
                         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 text-left">
                           <h5 className="font-extrabold text-xs text-slate-800 flex items-center gap-1.5">
@@ -1580,6 +1646,44 @@ export const CanvaStudioView: React.FC<CanvaStudioViewProps> = ({
                 </div>
               ) : (
                 <div className="space-y-4 text-xs">
+                  {/* Generated Real Image Display */}
+                  {generatedNanoImageData.imageUrl && (
+                    <div className="p-4 bg-slate-900 border-2 border-amber-400/60 rounded-2xl shadow-xl space-y-3">
+                      <div className="flex items-center justify-between text-amber-300 font-extrabold text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                          <span>Gambar AI Hasil Olahan Agent Nano Banana 2:</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={generatedNanoImageData.imageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-[10px] flex items-center gap-1"
+                          >
+                            <span>Buka Ukuran Penuh</span>
+                          </a>
+                          <a
+                            href={generatedNanoImageData.imageUrl}
+                            download={`Nano_Banana_2_${generatedNanoImageData.title.replace(/\s+/g, "_")}.jpg`}
+                            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-[10px] flex items-center gap-1"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>Unduh Gambar</span>
+                          </a>
+                        </div>
+                      </div>
+                      <div className="overflow-hidden rounded-xl border border-slate-700 bg-black/50 text-center">
+                        <img
+                          src={generatedNanoImageData.imageUrl}
+                          alt={generatedNanoImageData.title}
+                          className="w-full max-h-[480px] object-contain mx-auto"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div className="p-4 bg-white dark:bg-slate-900 border rounded-xl shadow-xs space-y-2">
                     <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 font-extrabold rounded-full text-[10px]">
                       🖼️ Nano Banana 2 Result

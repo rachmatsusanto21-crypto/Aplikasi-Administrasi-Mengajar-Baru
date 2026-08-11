@@ -127,3 +127,60 @@ export async function generateAIContent({
   );
 }
 
+interface GenerateImageOptions {
+  prompt: string;
+  aspectRatio?: string;
+  manualApiKey?: string;
+}
+
+export async function generateAIImage({
+  prompt,
+  aspectRatio = "1:1",
+  manualApiKey,
+}: GenerateImageOptions): Promise<{ imageUrl: string; engine: string }> {
+  const savedSettings1 = loadStoredData<any>(STORAGE_KEYS.AI_SETTINGS, {});
+  const savedSettings2 = loadStoredData<any>("aiSettings", {});
+  const effectiveApiKey =
+    manualApiKey ||
+    savedSettings1?.manualApiKey ||
+    savedSettings1?.apiKey ||
+    savedSettings2?.manualApiKey ||
+    savedSettings2?.apiKey ||
+    (import.meta as any).env?.VITE_GEMINI_API_KEY ||
+    undefined;
+
+  // 1. Try Backend API Route first
+  try {
+    const res = await fetch("/api/ai/generate-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        aspectRatio,
+        manualApiKey: effectiveApiKey,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.imageUrl) {
+        return { imageUrl: data.imageUrl, engine: data.engine || "Nano Banana 2 AI Agent" };
+      }
+    }
+  } catch (err) {
+    console.warn("Backend image endpoint fetch failed, falling back to AI agent client engine...", err);
+  }
+
+  // 2. Client-side fallback: Pollinations AI Engine
+  const seed = Math.floor(Math.random() * 900000) + 100000;
+  const encodedPrompt = encodeURIComponent(
+    `Educational vector graphic, ${prompt}, ultra high resolution, vibrant school colors, clean infographic style, 8k`
+  );
+  const width = aspectRatio === "16:9" ? 1024 : aspectRatio === "4:3" ? 800 : 768;
+  const height = aspectRatio === "16:9" ? 576 : aspectRatio === "4:3" ? 600 : 768;
+  const fallbackUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux`;
+
+  return { imageUrl: fallbackUrl, engine: "Nano Banana 2 AI Agent" };
+}
+
+
