@@ -2,8 +2,9 @@ import { SchoolIdentity } from "../types";
 import { getDefaultLogoLeft, getDefaultLogoRight } from "./defaultLogos";
 
 // Helper to convert image URL to Base64 Data URI for native MS Word embedding
-export async function getBase64Image(url: string, fallbackType: "left" | "right" = "left"): Promise<string> {
+export async function getBase64Image(url: string, fallbackType: "left" | "right" | "banner" = "left"): Promise<string> {
   if (!url) {
+    if (fallbackType === "banner") return "";
     return fallbackType === "left" ? getDefaultLogoLeft() : getDefaultLogoRight();
   }
   if (url.startsWith("data:")) return url;
@@ -140,19 +141,36 @@ export async function exportHtmlToDoc({
   const semester = schoolIdentity?.semester || "Ganjil";
   const gradeClass = schoolIdentity?.gradeClass || "Kelas IV";
 
-  const hasKopInContent = htmlContent.includes("kop-table") || htmlContent.includes("PEMERINTAH KOTA MALANG");
+  const govLine1 =
+    schoolIdentity?.governmentHeaderLine1 ||
+    (schoolIdentity?.regency
+      ? `PEMERINTAH ${schoolIdentity.regency.toUpperCase()}`
+      : "PEMERINTAH KOTA MALANG");
+  const govLine2 =
+    schoolIdentity?.governmentHeaderLine2 || "DINAS PENDIDIKAN DAN KEBUDAYAAN";
 
-  const kopHeaderHtml = hasKopInContent
-    ? ""
-    : `
+  const hasKopInContent = htmlContent.includes("kop-table") || htmlContent.includes("PEMERINTAH");
+
+  let kopHeaderHtml = "";
+  if (!hasKopInContent) {
+    if (schoolIdentity?.kopSuratBannerUrl) {
+      const bannerImg = await getBase64Image(schoolIdentity.kopSuratBannerUrl, "banner");
+      kopHeaderHtml = `
+  <div style="text-align: center; margin-bottom: 8px;">
+    <img src="${bannerImg}" style="width: 100%; max-width: 680px; height: auto;" alt="Kop Surat Sekolah" />
+  </div>
+  <div class="kop-line"></div>
+`;
+    } else {
+      kopHeaderHtml = `
   <table class="kop-table">
     <tr>
       <td style="width: 15%; text-align: left; vertical-align: middle;">
         <img src="${logoLeft}" width="70" height="70" style="width: 70px; height: 70px; max-width: 70px; max-height: 70px;" alt="Logo Kiri" />
       </td>
       <td style="width: 70%;" class="kop-text">
-        <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase; margin: 0;">PEMERINTAH KOTA MALANG</div>
-        <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase; margin: 0;">DINAS PENDIDIKAN DAN KEBUDAYAAN</div>
+        <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase; margin: 0;">${govLine1}</div>
+        <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase; margin: 0;">${govLine2}</div>
         <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; margin: 1pt 0;">${schoolName}</div>
         <div style="font-size: 8.5pt; font-weight: bold; margin: 0;">NPSN: ${npsn}</div>
         <div style="font-size: 8.5pt; margin: 0;">${address}</div>
@@ -165,6 +183,8 @@ export async function exportHtmlToDoc({
   </table>
   <div class="kop-line"></div>
 `;
+    }
+  }
 
   const fullHtmlBody = `
 <html xmlns:v="urn:schemas-microsoft-com:vml"

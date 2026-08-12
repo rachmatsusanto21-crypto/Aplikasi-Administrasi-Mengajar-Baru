@@ -30,14 +30,22 @@ export const KopSurat: React.FC<KopSuratProps> = ({
   const phone = schoolIdentity?.phone || "0341-574056";
   const email = schoolIdentity?.email || "sdnpisangcandi1.mlg@google.com";
 
+  const govLine1 =
+    schoolIdentity?.governmentHeaderLine1 ||
+    (schoolIdentity?.regency
+      ? `PEMERINTAH ${schoolIdentity.regency.toUpperCase()}`
+      : "PEMERINTAH KOTA MALANG");
+  const govLine2 =
+    schoolIdentity?.governmentHeaderLine2 || "DINAS PENDIDIKAN DAN KEBUDAYAAN";
+
   return (
     <div className={`border-b-4 border-double border-slate-900 pb-3 mb-5 ${className}`}>
       {schoolIdentity?.kopSuratBannerUrl ? (
-        <div className="w-full flex justify-center mb-1">
+        <div className="w-full flex justify-center mb-1 overflow-hidden">
           <img
             src={schoolIdentity.kopSuratBannerUrl}
-            alt="Kop Surat Banner"
-            className="w-full max-h-36 object-contain"
+            alt="Kop Surat Banner Sekolah"
+            className="w-full h-auto max-h-48 object-contain mx-auto"
           />
         </div>
       ) : (
@@ -57,10 +65,10 @@ export const KopSurat: React.FC<KopSuratProps> = ({
           {/* Text Header Kop Surat */}
           <div className="flex-1 text-center leading-tight">
             <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-900">
-              PEMERINTAH KOTA MALANG
+              {govLine1}
             </h3>
             <h3 className="font-bold text-xs sm:text-sm uppercase tracking-wide text-slate-900">
-              DINAS PENDIDIKAN DAN KEBUDAYAAN
+              {govLine2}
             </h3>
             <h2 className="font-extrabold text-base sm:text-xl uppercase tracking-wider text-slate-900 my-0.5">
               {schoolName}

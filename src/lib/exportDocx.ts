@@ -65,10 +65,40 @@ function dataUriToUint8Array(dataUri?: string): Uint8Array | null {
 
 // Utility to create Kop Surat header in Docx with logos
 function createKopHeader(school?: Partial<SchoolIdentity>): (Paragraph | Table)[] {
+  // Check if uploaded Kop Surat Banner image exists
+  if (school?.kopSuratBannerUrl) {
+    const bannerBytes = dataUriToUint8Array(school.kopSuratBannerUrl);
+    if (bannerBytes) {
+      return [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          border: {
+            bottom: { style: BorderStyle.SINGLE, size: 12, color: "000000" },
+          },
+          children: [
+            new ImageRun({
+              data: bannerBytes,
+              transformation: { width: 550, height: 110 },
+              type: "png",
+            }),
+          ],
+        }),
+      ];
+    }
+  }
+
   const schoolName = school?.schoolName || "SD NEGERI DEMO";
   const address = school?.address || "Jl. Pendidikan No. 1, Desa/Kel. Edukasi";
   const region = `${school?.district ? `Kec. ${school.district}, ` : ""}${school?.regency ? `Kab./Kota ${school.regency}` : ""}`;
   const prov = school?.province ? ` - ${school.province}` : "";
+
+  const govLine1 =
+    school?.governmentHeaderLine1 ||
+    (school?.regency
+      ? `PEMERINTAH ${school.regency.toUpperCase()}`
+      : "PEMERINTAH KOTA MALANG");
+  const govLine2 =
+    school?.governmentHeaderLine2 || "DINAS PENDIDIKAN DAN KEBUDAYAAN";
 
   // Base64 Data URIs for Logo Left & Logo Right
   const leftDataUri = school?.logoLeftUrl || school?.logoUrl || getDefaultLogoLeft();
@@ -112,7 +142,17 @@ function createKopHeader(school?: Partial<SchoolIdentity>): (Paragraph | Table)[
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: "PEMERINTAH KABUPATEN / KOTA DINAS PENDIDIKAN",
+          text: govLine1,
+          bold: true,
+          size: 18,
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: govLine2,
           bold: true,
           size: 18,
         }),

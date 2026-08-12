@@ -30,6 +30,8 @@ export interface SchoolIdentity {
   logoLeftUrl?: string;
   logoRightUrl?: string;
   kopSuratBannerUrl?: string;
+  governmentHeaderLine1?: string;
+  governmentHeaderLine2?: string;
   academicYear: string;
   academicYearStartDate?: string; // YYYY-MM-DD
   academicYearEndDate?: string;   // YYYY-MM-DD

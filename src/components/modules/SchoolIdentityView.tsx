@@ -197,6 +197,31 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Header Kop Surat Line 1 (Opsional)</label>
+                  <input
+                    type="text"
+                    name="governmentHeaderLine1"
+                    value={formData.governmentHeaderLine1 || ""}
+                    onChange={handleChange}
+                    placeholder="PEMERINTAH KOTA MALANG"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Header Kop Surat Line 2 (Opsional)</label>
+                  <input
+                    type="text"
+                    name="governmentHeaderLine2"
+                    value={formData.governmentHeaderLine2 || ""}
+                    onChange={handleChange}
+                    placeholder="DINAS PENDIDIKAN DAN KEBUDAYAAN"
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">Alamat Jalan</label>
                 <input
