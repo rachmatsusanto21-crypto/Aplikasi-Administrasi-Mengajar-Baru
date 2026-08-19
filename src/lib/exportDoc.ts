@@ -113,12 +113,23 @@ export async function exportHtmlToDoc({
   filename,
   title,
   schoolIdentity,
+  paperSize,
+  orientation = "portrait",
 }: {
   htmlContent: string;
   filename: string;
   title?: string;
   schoolIdentity?: Partial<SchoolIdentity>;
+  paperSize?: "A4" | "F4";
+  orientation?: "portrait" | "landscape";
 }): Promise<void> {
+  const effectivePaperSize: "A4" | "F4" =
+    paperSize ||
+    (typeof window !== "undefined"
+      ? (localStorage.getItem("adm_guru_paper_size") as "A4" | "F4")
+      : null) ||
+    "A4";
+
   const fallbackLeft = getDefaultLogoLeft();
   const fallbackRight = getDefaultLogoRight();
 
@@ -149,12 +160,21 @@ export async function exportHtmlToDoc({
   const govLine2 =
     schoolIdentity?.governmentHeaderLine2 || "DINAS PENDIDIKAN DAN KEBUDAYAAN";
 
-  const hasKopInContent = htmlContent.includes("kop-table") || htmlContent.includes("PEMERINTAH");
+  const bannerUrl =
+    schoolIdentity?.kopSuratBannerUrl ||
+    (typeof window !== "undefined" ? localStorage.getItem("adm_guru_kop_banner") : null) ||
+    "";
+
+  const hasKopInContent =
+    htmlContent.includes("kop-table") ||
+    htmlContent.includes("PEMERINTAH") ||
+    htmlContent.includes("Kop Surat Banner") ||
+    htmlContent.includes("kop-line");
 
   let kopHeaderHtml = "";
   if (!hasKopInContent) {
-    if (schoolIdentity?.kopSuratBannerUrl) {
-      const bannerImg = await getBase64Image(schoolIdentity.kopSuratBannerUrl, "banner");
+    if (bannerUrl) {
+      const bannerImg = await getBase64Image(bannerUrl, "banner");
       kopHeaderHtml = `
   <div style="text-align: center; margin-bottom: 8px;">
     <img src="${bannerImg}" style="width: 100%; max-width: 680px; height: auto;" alt="Kop Surat Sekolah" />
@@ -186,6 +206,22 @@ export async function exportHtmlToDoc({
     }
   }
 
+  // Margin and size definition based on user specifications:
+  // Portrait: Left 2.5cm, Top/Right/Bottom 2.0cm
+  // Landscape: Top 2.5cm, Left/Right/Bottom 2.0cm
+  const isLandscape = orientation === "landscape";
+  const paperSizeCss = isLandscape
+    ? effectivePaperSize === "F4"
+      ? "33.0cm 21.5cm"
+      : "29.7cm 21.0cm"
+    : effectivePaperSize === "F4"
+    ? "21.5cm 33.0cm"
+    : "21.0cm 29.7cm";
+
+  const marginCss = isLandscape
+    ? "2.5cm 2.0cm 2.0cm 2.0cm" // Top: 2.5cm, Right: 2.0cm, Bottom: 2.0cm, Left: 2.0cm
+    : "2.0cm 2.0cm 2.0cm 2.5cm"; // Top: 2.0cm, Right: 2.0cm, Bottom: 2.0cm, Left: 2.5cm
+
   const fullHtmlBody = `
 <html xmlns:v="urn:schemas-microsoft-com:vml"
 xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -206,8 +242,9 @@ xmlns="http://www.w3.org/TR/REC-html40">
   <![endif]-->
   <style>
     @page WordSection1 {
-      size: 210mm 297mm; /* A4 */
-      margin: 1.5cm 1.5cm 1.5cm 1.5cm;
+      size: ${paperSizeCss};
+      margin: ${marginCss};
+      mso-page-orientation: ${orientation};
       mso-header-margin: 35.4pt;
       mso-footer-margin: 35.4pt;
       mso-paper-source: 0;
@@ -269,11 +306,14 @@ xmlns="http://www.w3.org/TR/REC-html40">
     table {
       border-collapse: collapse !important;
       width: 100% !important;
+      max-width: 100% !important;
+      table-layout: auto !important;
       margin-top: 4pt !important;
       margin-bottom: 6pt !important;
       mso-table-lspace: 0pt !important;
       mso-table-rspace: 0pt !important;
       mso-padding-alt: 2pt 4pt 2pt 4pt !important;
+      word-wrap: break-word !important;
     }
     th, td {
       border: 1px solid #333333 !important;
@@ -283,6 +323,8 @@ xmlns="http://www.w3.org/TR/REC-html40">
       line-height: 1.15 !important;
       vertical-align: top !important;
       mso-line-height-rule: exactly !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
     }
     th {
       background-color: #f1f5f9 !important;

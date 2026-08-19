@@ -27,7 +27,7 @@ interface PrintModalProps {
   schoolIdentity: SchoolIdentity;
   children: React.ReactNode;
   defaultOrientation?: "portrait" | "landscape";
-  defaultPaperSize?: "A4" | "F4" | "Letter" | "Legal" | "Auto";
+  defaultPaperSize?: "A4" | "F4";
   enablePageBreaks?: boolean;
   onTogglePageBreaks?: () => void;
 }
@@ -40,7 +40,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   schoolIdentity,
   children,
   defaultOrientation = "portrait",
-  defaultPaperSize = "A4",
+  defaultPaperSize,
   enablePageBreaks = true,
   onTogglePageBreaks,
 }) => {
@@ -52,25 +52,80 @@ export const PrintModal: React.FC<PrintModalProps> = ({
     "ALL" | "HEADER_TITLE" | "BODY_ONLY" | "SIGNATURE_ONLY"
   >("ALL");
 
-  // Paper Size & Orientation
-  const [paperSize, setPaperSize] = useState<"A4" | "F4" | "Letter" | "Legal" | "Auto">(defaultPaperSize);
+  // Paper Size & Orientation (Persisted in localStorage)
+  const [paperSize, setPaperSize] = useState<"A4" | "F4">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("adm_guru_paper_size");
+      if (saved === "A4" || saved === "F4") return saved;
+    }
+    return defaultPaperSize || "A4";
+  });
+
   const [orientation, setOrientation] = useState<"portrait" | "landscape">(defaultOrientation);
 
   // Page Break Utilities Toggle
   const [pageBreaksActive, setPageBreaksActive] = useState<boolean>(enablePageBreaks);
 
-  // Margin Configuration (in mm)
-  const [marginPreset, setMarginPreset] = useState<"normal" | "narrow" | "moderate" | "custom">("normal");
-  const [marginTop, setMarginTop] = useState<number>(20);
+  // Margin Configuration (in mm):
+  // Portrait: Kiri 25mm (2.5cm), Atas 20mm (2cm), Kanan 20mm (2cm), Bawah 20mm (2cm)
+  // Landscape: Atas 25mm (2.5cm), Kiri 20mm (2cm), Kanan 20mm (2cm), Bawah 20mm (2cm)
+  const [marginPreset, setMarginPreset] = useState<"standard" | "narrow" | "custom">("standard");
+  const [marginTop, setMarginTop] = useState<number>(defaultOrientation === "landscape" ? 25 : 20);
   const [marginBottom, setMarginBottom] = useState<number>(20);
-  const [marginLeft, setMarginLeft] = useState<number>(20);
+  const [marginLeft, setMarginLeft] = useState<number>(defaultOrientation === "portrait" ? 25 : 20);
   const [marginRight, setMarginRight] = useState<number>(20);
+
+  // Update margins whenever orientation changes to follow strict rules
+  const handleOrientationChange = (newOrientation: "portrait" | "landscape") => {
+    setOrientation(newOrientation);
+    if (marginPreset === "standard") {
+      if (newOrientation === "portrait") {
+        setMarginTop(20);
+        setMarginBottom(20);
+        setMarginLeft(25); // Batas Kiri 2.5 cm
+        setMarginRight(20);
+      } else {
+        setMarginTop(25); // Batas Atas 2.5 cm
+        setMarginBottom(20);
+        setMarginLeft(20);
+        setMarginRight(20);
+      }
+    }
+  };
+
+  const handlePaperSizeChange = (newSize: "A4" | "F4") => {
+    setPaperSize(newSize);
+    try {
+      localStorage.setItem("adm_guru_paper_size", newSize);
+    } catch {
+      /* ignore */
+    }
+  };
 
   // Sync state when modal opens or defaults change
   useEffect(() => {
     if (isOpen) {
       setOrientation(defaultOrientation);
-      setPaperSize(defaultPaperSize);
+      if (defaultOrientation === "portrait") {
+        setMarginTop(20);
+        setMarginBottom(20);
+        setMarginLeft(25);
+        setMarginRight(20);
+      } else {
+        setMarginTop(25);
+        setMarginBottom(20);
+        setMarginLeft(20);
+        setMarginRight(20);
+      }
+
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("adm_guru_paper_size");
+        if (saved === "A4" || saved === "F4") {
+          setPaperSize(saved);
+        } else if (defaultPaperSize) {
+          setPaperSize(defaultPaperSize);
+        }
+      }
       setPageBreaksActive(enablePageBreaks);
     }
   }, [isOpen, defaultOrientation, defaultPaperSize, enablePageBreaks]);
@@ -86,18 +141,32 @@ export const PrintModal: React.FC<PrintModalProps> = ({
       document.head.appendChild(styleEl);
     }
 
-    let sizeSpec = "A4";
-    if (paperSize === "F4") sizeSpec = "215mm 330mm";
-    else if (paperSize === "Letter") sizeSpec = "letter";
-    else if (paperSize === "Legal") sizeSpec = "legal";
-    else if (paperSize === "A4") sizeSpec = "A4";
-    else if (paperSize === "Auto") sizeSpec = "auto";
+    const sizeSpec = paperSize === "F4" ? "215mm 330mm" : "210mm 297mm";
 
     styleEl.innerHTML = `
       @media print {
         @page {
-          size: ${sizeSpec} ${paperSize !== "Auto" ? orientation : ""};
+          size: ${sizeSpec} ${orientation};
           margin: ${marginTop}mm ${marginRight}mm ${marginBottom}mm ${marginLeft}mm;
+        }
+        body {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        table {
+          width: 100% !important;
+          max-width: 100% !important;
+          table-layout: auto !important;
+          page-break-inside: auto;
+          word-break: break-word !important;
+        }
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        th, td {
+          word-break: break-word !important;
+          overflow-wrap: break-word !important;
         }
       }
     `;
@@ -160,23 +229,25 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   if (!isOpen) return null;
 
   // Handle preset margin changes
-  const handlePresetChange = (preset: "normal" | "narrow" | "moderate" | "custom") => {
+  const handlePresetChange = (preset: "standard" | "narrow" | "custom") => {
     setMarginPreset(preset);
-    if (preset === "normal") {
-      setMarginTop(20);
-      setMarginBottom(20);
-      setMarginLeft(20);
-      setMarginRight(20);
+    if (preset === "standard") {
+      if (orientation === "portrait") {
+        setMarginTop(20);
+        setMarginBottom(20);
+        setMarginLeft(25); // Batas Kiri 2.5 cm
+        setMarginRight(20);
+      } else {
+        setMarginTop(25); // Batas Atas 2.5 cm
+        setMarginBottom(20);
+        setMarginLeft(20);
+        setMarginRight(20);
+      }
     } else if (preset === "narrow") {
       setMarginTop(10);
       setMarginBottom(10);
       setMarginLeft(10);
       setMarginRight(10);
-    } else if (preset === "moderate") {
-      setMarginTop(15);
-      setMarginBottom(15);
-      setMarginLeft(15);
-      setMarginRight(15);
     }
   };
 
@@ -257,6 +328,8 @@ export const PrintModal: React.FC<PrintModalProps> = ({
         filename: `${title.replace(/[^a-zA-Z0-9_]/g, "_")}.doc`,
         title,
         schoolIdentity,
+        paperSize,
+        orientation,
       });
     }
   };
@@ -270,35 +343,13 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   };
 
   const getPaperPreviewStyle = () => {
-    let baseWidthMm = 210; // A4 default
-    let baseHeightMm = 297;
-
-    if (paperSize === "F4") {
-      baseWidthMm = 215;
-      baseHeightMm = 330;
-    } else if (paperSize === "Letter") {
-      baseWidthMm = 215.9;
-      baseHeightMm = 279.4;
-    } else if (paperSize === "Legal") {
-      baseWidthMm = 215.9;
-      baseHeightMm = 355.6;
-    }
+    let baseWidthMm = paperSize === "F4" ? 215 : 210;
+    let baseHeightMm = paperSize === "F4" ? 330 : 297;
 
     if (orientation === "landscape") {
       const temp = baseWidthMm;
       baseWidthMm = baseHeightMm;
       baseHeightMm = temp;
-    }
-
-    if (paperSize === "Auto") {
-      return {
-        width: "100%",
-        minHeight: "auto",
-        paddingTop: `${marginTop}mm`,
-        paddingBottom: `${marginBottom}mm`,
-        paddingLeft: `${marginLeft}mm`,
-        paddingRight: `${marginRight}mm`,
-      };
     }
 
     return {
@@ -309,6 +360,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
       paddingBottom: `${marginBottom}mm`,
       paddingLeft: `${marginLeft}mm`,
       paddingRight: `${marginRight}mm`,
+      boxSizing: "border-box" as const,
     };
   };
 
@@ -422,23 +474,20 @@ export const PrintModal: React.FC<PrintModalProps> = ({
             </label>
             <select
               value={paperSize}
-              onChange={(e) => setPaperSize(e.target.value as any)}
+              onChange={(e) => handlePaperSizeChange(e.target.value as "A4" | "F4")}
               className="px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-200"
             >
               <option value="A4">A4 (210 x 297 mm)</option>
               <option value="F4">F4 / Folio (215 x 330 mm)</option>
-              <option value="Letter">Letter (216 x 279 mm)</option>
-              <option value="Legal">Legal (216 x 356 mm)</option>
-              <option value="Auto">✨ Auto Fit Konten (Tanpa Batas Potong)</option>
             </select>
 
             <select
               value={orientation}
-              onChange={(e) => setOrientation(e.target.value as any)}
+              onChange={(e) => handleOrientationChange(e.target.value as "portrait" | "landscape")}
               className="px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-200"
             >
-              <option value="portrait">Tegak (Portrait)</option>
-              <option value="landscape">Mendatar (Landscape)</option>
+              <option value="portrait">Tegak (Portrait - Kiri 2.5cm)</option>
+              <option value="landscape">Mendatar (Landscape - Atas 2.5cm)</option>
             </select>
           </div>
 
@@ -481,9 +530,10 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               onChange={(e) => handlePresetChange(e.target.value as any)}
               className="px-2.5 py-1.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg font-bold text-slate-800 dark:text-slate-200"
             >
-              <option value="normal">Normal (20mm)</option>
+              <option value="standard">
+                Standar Baku ({orientation === "portrait" ? "Kiri 2.5cm, Lainnya 2cm" : "Atas 2.5cm, Lainnya 2cm"})
+              </option>
               <option value="narrow">Sempit (10mm)</option>
-              <option value="moderate">Sedang (15mm)</option>
               <option value="custom">Kustom mm</option>
             </select>
 

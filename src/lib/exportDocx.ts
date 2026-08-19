@@ -66,8 +66,13 @@ function dataUriToUint8Array(dataUri?: string): Uint8Array | null {
 // Utility to create Kop Surat header in Docx with logos
 function createKopHeader(school?: Partial<SchoolIdentity>): (Paragraph | Table)[] {
   // Check if uploaded Kop Surat Banner image exists
-  if (school?.kopSuratBannerUrl) {
-    const bannerBytes = dataUriToUint8Array(school.kopSuratBannerUrl);
+  const bannerUrl =
+    school?.kopSuratBannerUrl ||
+    (typeof window !== "undefined" ? localStorage.getItem("adm_guru_kop_banner") : null) ||
+    undefined;
+
+  if (bannerUrl) {
+    const bannerBytes = dataUriToUint8Array(bannerUrl);
     if (bannerBytes) {
       return [
         new Paragraph({
@@ -281,8 +286,57 @@ function createSignatures(school?: Partial<SchoolIdentity>): Table {
   });
 }
 
+// Helper to get standard section properties for A4 and F4 with exact margins:
+// Portrait: Left 2.5cm (1417 twips), Others 2.0cm (1134 twips)
+// Landscape: Top 2.5cm (1417 twips), Others 2.0cm (1134 twips)
+export function getDocxSectionProperties(
+  paperSize?: "A4" | "F4",
+  orientation: "portrait" | "landscape" = "portrait"
+) {
+  const effectivePaperSize: "A4" | "F4" =
+    paperSize ||
+    (typeof window !== "undefined"
+      ? (localStorage.getItem("adm_guru_paper_size") as "A4" | "F4")
+      : null) ||
+    "A4";
+
+  const margins =
+    orientation === "portrait"
+      ? {
+          top: 1134,
+          bottom: 1134,
+          left: 1417, // 2.5 cm
+          right: 1134,
+        }
+      : {
+          top: 1417, // 2.5 cm
+          bottom: 1134,
+          left: 1134,
+          right: 1134,
+        };
+
+  const widthTwips = effectivePaperSize === "F4" ? 12189 : 11906;
+  const heightTwips = effectivePaperSize === "F4" ? 18709 : 16838;
+
+  return {
+    page: {
+      size: {
+        width: orientation === "landscape" ? heightTwips : widthTwips,
+        height: orientation === "landscape" ? widthTwips : heightTwips,
+        orientation: orientation === "landscape" ? ("landscape" as const) : ("portrait" as const),
+      },
+      margin: margins,
+    },
+  };
+}
+
 // 1. Export Modul Ajar / RPM ke Format .docx
-export async function exportTeachingModuleToDocx(mod: TeachingModule, school?: Partial<SchoolIdentity>) {
+export async function exportTeachingModuleToDocx(
+  mod: TeachingModule,
+  school?: Partial<SchoolIdentity>,
+  paperSize?: "A4" | "F4",
+  orientation: "portrait" | "landscape" = "portrait"
+) {
   const docChildren: any[] = [];
   const iden = mod.identifikasi || {};
   const desain = mod.desainPembelajaran || {};
@@ -516,7 +570,12 @@ export async function exportTeachingModuleToDocx(mod: TeachingModule, school?: P
   );
 
   const doc = new Document({
-    sections: [{ children: docChildren }],
+    sections: [
+      {
+        properties: getDocxSectionProperties(paperSize, orientation),
+        children: docChildren,
+      },
+    ],
   });
 
   const blob = await Packer.toBlob(doc);
@@ -528,7 +587,9 @@ export async function exportTeachingModuleToDocx(mod: TeachingModule, school?: P
 export async function exportGuestBookToDocx(
   guests: GuestEntryDocx[],
   incidental: IncidentalJournalDocx[],
-  school?: Partial<SchoolIdentity>
+  school?: Partial<SchoolIdentity>,
+  paperSize?: "A4" | "F4",
+  orientation: "portrait" | "landscape" = "portrait"
 ) {
   const docChildren: any[] = [];
 
@@ -623,7 +684,12 @@ export async function exportGuestBookToDocx(
   );
 
   const doc = new Document({
-    sections: [{ children: docChildren }],
+    sections: [
+      {
+        properties: getDocxSectionProperties(paperSize, orientation),
+        children: docChildren,
+      },
+    ],
   });
 
   const blob = await Packer.toBlob(doc);

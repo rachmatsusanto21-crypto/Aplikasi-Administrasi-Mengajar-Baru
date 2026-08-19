@@ -193,6 +193,7 @@ export interface GASConfig {
   spreadsheetId: string;
   autoSync: boolean;
   email?: string;
+  folderId?: string;
 }
 
 export type DailyTeachingLog = {

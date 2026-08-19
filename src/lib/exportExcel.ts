@@ -49,6 +49,7 @@ export function exportTableToExcelFormat(
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   autoWidth(worksheet);
+  applyPageSetup(worksheet);
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, title || "Sheet1");
@@ -75,6 +76,48 @@ function autoWidth(worksheet: XLSX.WorkSheet) {
   worksheet["!cols"] = cols;
 }
 
+// Helper to apply persistent paper size (A4 / F4) and margins:
+// Portrait: Left 2.5cm (0.98 in), Others 2.0cm (0.79 in)
+// Landscape: Top 2.5cm (0.98 in), Others 2.0cm (0.79 in)
+export function applyPageSetup(
+  worksheet: XLSX.WorkSheet,
+  paperSize?: "A4" | "F4",
+  orientation: "portrait" | "landscape" = "portrait"
+) {
+  const effectivePaperSize: "A4" | "F4" =
+    paperSize ||
+    (typeof window !== "undefined"
+      ? (localStorage.getItem("adm_guru_paper_size") as "A4" | "F4")
+      : null) ||
+    "A4";
+
+  if (orientation === "portrait") {
+    worksheet["!margins"] = {
+      left: 0.98, // 2.5 cm
+      right: 0.79, // 2.0 cm
+      top: 0.79, // 2.0 cm
+      bottom: 0.79, // 2.0 cm
+      header: 0.3,
+      footer: 0.3,
+    };
+  } else {
+    worksheet["!margins"] = {
+      left: 0.79, // 2.0 cm
+      right: 0.79, // 2.0 cm
+      top: 0.98, // 2.5 cm
+      bottom: 0.79, // 2.0 cm
+      header: 0.3,
+      footer: 0.3,
+    };
+  }
+
+  // 9 = A4, 14 = Folio / F4 (in Excel standard paper size constants)
+  worksheet["!pageSetup"] = {
+    paperSize: effectivePaperSize === "F4" ? 14 : 9,
+    orientation: orientation,
+  };
+}
+
 // 1. Export Data Siswa
 export function exportStudentsToExcel(students: Student[], schoolIdentity?: Partial<SchoolIdentity>) {
   const data = students.map((s, idx) => ({
@@ -87,6 +130,7 @@ export function exportStudentsToExcel(students: Student[], schoolIdentity?: Part
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   autoWidth(worksheet);
+  applyPageSetup(worksheet);
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Data Siswa");
@@ -132,6 +176,7 @@ export function exportGradesToExcel(
 
   const summarySheet = XLSX.utils.json_to_sheet(summaryRows);
   autoWidth(summarySheet);
+  applyPageSetup(summarySheet, undefined, "landscape");
   XLSX.utils.book_append_sheet(workbook, summarySheet, "Rekap Nilai Matrix");
 
   // Sheet 2: Detail Nilai Formatif Harian
@@ -151,6 +196,7 @@ export function exportGradesToExcel(
 
     const detailSheet = XLSX.utils.json_to_sheet(detailRows);
     autoWidth(detailSheet);
+    applyPageSetup(detailSheet);
     XLSX.utils.book_append_sheet(workbook, detailSheet, "Rincian Formatif Harian");
   }
 
@@ -204,6 +250,7 @@ export function exportAttendanceToExcel(
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   autoWidth(worksheet);
+  applyPageSetup(worksheet);
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Presensi");
@@ -229,6 +276,7 @@ export function exportTeachingLogsToExcel(logs: DailyTeachingLog[], schoolIdenti
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   autoWidth(worksheet);
+  applyPageSetup(worksheet, undefined, "landscape");
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Jurnal Mengajar");
@@ -251,6 +299,7 @@ export function exportProtaToExcel(protaList: ProtaItem[], schoolIdentity?: Part
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   autoWidth(worksheet);
+  applyPageSetup(worksheet);
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Prota");
@@ -360,6 +409,7 @@ export function exportPromesToExcel(
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
     autoWidth(worksheet);
+    applyPageSetup(worksheet, undefined, "landscape");
     XLSX.utils.book_append_sheet(workbook, worksheet, `Promes ${semLabel}`);
   });
 
@@ -368,6 +418,7 @@ export function exportPromesToExcel(
     const defaultSheet = XLSX.utils.json_to_sheet([
       { Information: "Belum ada data Program Semester (Promes)." },
     ]);
+    applyPageSetup(defaultSheet);
     XLSX.utils.book_append_sheet(workbook, defaultSheet, "Promes");
   }
 
@@ -392,6 +443,7 @@ export function exportCurriculumToExcel(cptpItems: CPTPItem[], schoolIdentity?: 
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   autoWidth(worksheet);
+  applyPageSetup(worksheet);
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "CP dan TP Kurikulum");
@@ -418,6 +470,7 @@ export function exportTimetableToExcel(
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   autoWidth(worksheet);
+  applyPageSetup(worksheet, undefined, "landscape");
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Jadwal Pelajaran");
@@ -476,6 +529,7 @@ export function exportMonthlyMatrixToExcel(
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
   autoWidth(worksheet);
+  applyPageSetup(worksheet, undefined, "landscape");
 
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, `Matriks_${monthLabel.replace(/\s+/g, "_")}`);

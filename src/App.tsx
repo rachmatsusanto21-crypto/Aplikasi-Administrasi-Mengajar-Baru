@@ -96,9 +96,14 @@ export default function App() {
   const [users, setUsers] = useState<UserAccount[]>(() =>
     loadFromStorage("usersList", INITIAL_USERS)
   );
-  const [schoolIdentity, setSchoolIdentity] = useState<SchoolIdentity>(() =>
-    loadFromStorage("schoolIdentity", INITIAL_SCHOOL_IDENTITY)
-  );
+  const [schoolIdentity, setSchoolIdentity] = useState<SchoolIdentity>(() => {
+    const loaded = loadFromStorage("schoolIdentity", INITIAL_SCHOOL_IDENTITY);
+    const savedBanner = typeof window !== "undefined" ? localStorage.getItem("adm_guru_kop_banner") : null;
+    if (savedBanner && !loaded.kopSuratBannerUrl) {
+      return { ...loaded, kopSuratBannerUrl: savedBanner };
+    }
+    return loaded;
+  });
   const [students, setStudents] = useState<Student[]>(() =>
     loadFromStorage("students", INITIAL_STUDENTS)
   );
@@ -235,6 +240,14 @@ export default function App() {
   // Sync to local storage
   useEffect(() => {
     saveToStorage("schoolIdentity", schoolIdentity);
+    saveToStorage(STORAGE_KEYS.IDENTITY, schoolIdentity);
+    if (schoolIdentity.kopSuratBannerUrl) {
+      try {
+        localStorage.setItem("adm_guru_kop_banner", schoolIdentity.kopSuratBannerUrl);
+      } catch {
+        /* ignore */
+      }
+    }
   }, [schoolIdentity]);
 
   useEffect(() => {

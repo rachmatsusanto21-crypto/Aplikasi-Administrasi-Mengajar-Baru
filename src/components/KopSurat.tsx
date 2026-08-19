@@ -38,12 +38,17 @@ export const KopSurat: React.FC<KopSuratProps> = ({
   const govLine2 =
     schoolIdentity?.governmentHeaderLine2 || "DINAS PENDIDIKAN DAN KEBUDAYAAN";
 
+  const bannerUrl =
+    schoolIdentity?.kopSuratBannerUrl ||
+    (typeof window !== "undefined" ? localStorage.getItem("adm_guru_kop_banner") : null) ||
+    "";
+
   return (
     <div className={`border-b-4 border-double border-slate-900 pb-3 mb-5 ${className}`}>
-      {schoolIdentity?.kopSuratBannerUrl ? (
+      {bannerUrl ? (
         <div className="w-full flex justify-center mb-1 overflow-hidden">
           <img
-            src={schoolIdentity.kopSuratBannerUrl}
+            src={bannerUrl}
             alt="Kop Surat Banner Sekolah"
             className="w-full h-auto max-h-48 object-contain mx-auto"
           />

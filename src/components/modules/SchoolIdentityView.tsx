@@ -1,8 +1,10 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { SchoolIdentity } from "../../types";
 import { Building2, Save, Printer, Image, UserCheck, ShieldCheck, Check, Upload, RefreshCw } from "lucide-react";
 import { ExportActionBar } from "../ExportActionBar";
 import { getDefaultLogoLeft, getDefaultLogoRight } from "../../lib/defaultLogos";
+import { compressImageFile } from "../../lib/imageUtils";
+import { saveToStorage, STORAGE_KEYS } from "../../lib/storage";
 
 interface SchoolIdentityViewProps {
   identity: SchoolIdentity;
@@ -18,6 +20,16 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
   const [formData, setFormData] = useState<SchoolIdentity>(identity);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
+  useEffect(() => {
+    setFormData((prev) => {
+      const banner = identity.kopSuratBannerUrl || (typeof window !== "undefined" ? localStorage.getItem("adm_guru_kop_banner") || "" : "");
+      return {
+        ...identity,
+        kopSuratBannerUrl: banner || identity.kopSuratBannerUrl || prev.kopSuratBannerUrl || "",
+      };
+    });
+  }, [identity]);
+
   const logoLeftInputRef = useRef<HTMLInputElement>(null);
   const logoRightInputRef = useRef<HTMLInputElement>(null);
   const kopBannerInputRef = useRef<HTMLInputElement>(null);
@@ -27,46 +39,119 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, fieldName: "logoLeftUrl" | "logoRightUrl" | "logoUrl" | "kopSuratBannerUrl") => {
+  const handleFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fieldName: "logoLeftUrl" | "logoRightUrl" | "logoUrl" | "kopSuratBannerUrl"
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target?.result as string;
+    try {
+      const isBanner = fieldName === "kopSuratBannerUrl";
+      const maxWidth = isBanner ? 1400 : 400;
+      const maxHeight = isBanner ? 500 : 400;
+
+      const base64Data = await compressImageFile(file, maxWidth, maxHeight, 0.88);
+
       if (base64Data) {
-        setFormData((prev) => ({
-          ...prev,
-          [fieldName]: base64Data,
-          ...(fieldName === "logoLeftUrl" ? { logoUrl: base64Data } : {}),
-        }));
+        setFormData((prev) => {
+          const updated: SchoolIdentity = {
+            ...prev,
+            [fieldName]: base64Data,
+            ...(fieldName === "logoLeftUrl" ? { logoUrl: base64Data } : {}),
+          };
+
+          if (isBanner) {
+            try {
+              localStorage.setItem("adm_guru_kop_banner", base64Data);
+            } catch (err) {
+              console.error("Gagal simpan adm_guru_kop_banner di localStorage:", err);
+            }
+          }
+
+          saveToStorage("schoolIdentity", updated);
+          saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+          onSave(updated);
+          return updated;
+        });
+
+        setSavedSuccess(true);
+        setTimeout(() => setSavedSuccess(false), 3000);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Gagal memproses dan menyimpan file gambar:", err);
+    }
+  };
+
+  const handleRemoveBanner = () => {
+    try {
+      localStorage.removeItem("adm_guru_kop_banner");
+    } catch {
+      /* ignore */
+    }
+    setFormData((prev) => {
+      const updated: SchoolIdentity = {
+        ...prev,
+        kopSuratBannerUrl: "",
+      };
+      saveToStorage("schoolIdentity", updated);
+      saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+      onSave(updated);
+      return updated;
+    });
+    setSavedSuccess(true);
+    setTimeout(() => setSavedSuccess(false), 2000);
   };
 
   const handleResetLogoLeft = () => {
     const defaultLeft = getDefaultLogoLeft();
-    setFormData((prev) => ({
-      ...prev,
-      logoLeftUrl: defaultLeft,
-      logoUrl: defaultLeft,
-    }));
+    setFormData((prev) => {
+      const updated: SchoolIdentity = {
+        ...prev,
+        logoLeftUrl: defaultLeft,
+        logoUrl: defaultLeft,
+      };
+      saveToStorage("schoolIdentity", updated);
+      saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+      onSave(updated);
+      return updated;
+    });
   };
 
   const handleResetLogoRight = () => {
     const defaultRight = getDefaultLogoRight();
-    setFormData((prev) => ({
-      ...prev,
-      logoRightUrl: defaultRight,
-    }));
+    setFormData((prev) => {
+      const updated: SchoolIdentity = {
+        ...prev,
+        logoRightUrl: defaultRight,
+      };
+      saveToStorage("schoolIdentity", updated);
+      saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+      onSave(updated);
+      return updated;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.kopSuratBannerUrl) {
+      try {
+        localStorage.setItem("adm_guru_kop_banner", formData.kopSuratBannerUrl);
+      } catch (err) {
+        console.error("Error setting banner in localStorage:", err);
+      }
+    } else {
+      try {
+        localStorage.removeItem("adm_guru_kop_banner");
+      } catch {
+        /* ignore */
+      }
+    }
+    saveToStorage("schoolIdentity", formData);
+    saveToStorage(STORAGE_KEYS.IDENTITY, formData);
     onSave(formData);
     setSavedSuccess(true);
-    setTimeout(() => setSavedSuccess(false), 2500);
+    setTimeout(() => setSavedSuccess(false), 3000);
   };
 
   const handlePrint = () => {
@@ -355,7 +440,7 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => setFormData((prev) => ({ ...prev, kopSuratBannerUrl: "" }))}
+                        onClick={handleRemoveBanner}
                         className="py-1.5 px-3 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold rounded-md flex items-center justify-center gap-1"
                       >
                         <RefreshCw className="w-3.5 h-3.5" />
