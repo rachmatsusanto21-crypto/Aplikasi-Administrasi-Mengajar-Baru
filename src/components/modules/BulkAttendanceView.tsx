@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Student, AttendanceRecord, AttendanceStatus, SchoolIdentity } from "../../types";
 import {
   UserCheck,
@@ -7,6 +7,7 @@ import {
   Save,
   Printer,
   Download,
+  Upload,
   Filter,
   Search,
   FileText,
@@ -18,6 +19,13 @@ import {
   History,
   X,
   Check,
+  FileSpreadsheet,
+  UploadCloud,
+  FileUp,
+  FileDown,
+  HelpCircle,
+  Info,
+  Layers,
 } from "lucide-react";
 import { exportToCSV } from "../../lib/storage";
 import { exportHtmlToDoc } from "../../lib/exportDoc";
@@ -25,6 +33,15 @@ import {
   exportAttendanceToExcel,
   exportMonthlyMatrixToExcel,
 } from "../../lib/exportExcel";
+import {
+  downloadMonthlyMatrixTemplate,
+  downloadSemesterRecapTemplate,
+  downloadDailyLogTemplate,
+  parseMonthlyMatrixExcel,
+  parseSemesterRecapExcel,
+  parseDailyLogAttendanceExcel,
+  ParseAttendanceResult,
+} from "../../lib/attendanceExcelService";
 
 interface BulkAttendanceViewProps {
   students: Student[];
@@ -49,6 +66,25 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
   const academicYear = schoolIdentity?.academicYear || "2025/2026";
   const startYear = parseInt(academicYear.split(/[\/\-]/)[0] || "2025", 10);
   const endYear = startYear + 1;
+
+  // File Input References for Uploading Templates
+  const matrixFileInputRef = useRef<HTMLInputElement>(null);
+  const semesterFileInputRef = useRef<HTMLInputElement>(null);
+  const dailyLogFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Import Preview & Modal State
+  const [importModal, setImportModal] = useState<{
+    isOpen: boolean;
+    result?: ParseAttendanceResult;
+    fileName?: string;
+    mode: "matrix" | "semester" | "log";
+    mergeMode: "merge" | "replace_month" | "replace_all";
+  }>({
+    isOpen: false,
+    mode: "matrix",
+    mergeMode: "merge",
+  });
+  const [isProcessingImport, setIsProcessingImport] = useState(false);
 
   // Local state for bulk entry on selected date
   const [dailyStatusMap, setDailyStatusMap] = useState<
@@ -570,6 +606,135 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
     );
   };
 
+  // =========================================================================
+  // TEMPLATE DOWNLOAD & UPLOAD HANDLERS (GOOGLE SHEETS / EXCEL COMPATIBLE)
+  // =========================================================================
+  const handleDownloadMonthlyMatrixTemplate = () => {
+    downloadMonthlyMatrixTemplate(
+      students,
+      selectedMatrixMonth,
+      schoolIdentity,
+      attendanceRecords
+    );
+  };
+
+  const handleUploadMatrixFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingImport(true);
+      const result = await parseMonthlyMatrixExcel(file, students, selectedMatrixMonth);
+      setImportModal({
+        isOpen: true,
+        result,
+        fileName: file.name,
+        mode: "matrix",
+        mergeMode: "merge",
+      });
+    } catch (err: any) {
+      alert(`Gagal membaca file template matriks: ${err.message || err}`);
+    } finally {
+      setIsProcessingImport(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleDownloadSemesterRecapTemplate = () => {
+    const sem = schoolIdentity?.semester || "Semester Ganjil";
+    downloadSemesterRecapTemplate(students, sem, schoolIdentity, attendanceRecords);
+  };
+
+  const handleUploadSemesterFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingImport(true);
+      const result = await parseSemesterRecapExcel(file, students);
+      setImportModal({
+        isOpen: true,
+        result,
+        fileName: file.name,
+        mode: "semester",
+        mergeMode: "merge",
+      });
+    } catch (err: any) {
+      alert(`Gagal membaca file template rekap semester: ${err.message || err}`);
+    } finally {
+      setIsProcessingImport(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleDownloadDailyLogTemplate = () => {
+    downloadDailyLogTemplate(students, schoolIdentity, attendanceRecords);
+  };
+
+  const handleUploadDailyLogFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsProcessingImport(true);
+      const result = await parseDailyLogAttendanceExcel(file, students);
+      setImportModal({
+        isOpen: true,
+        result,
+        fileName: file.name,
+        mode: "log",
+        mergeMode: "merge",
+      });
+    } catch (err: any) {
+      alert(`Gagal membaca file log presensi: ${err.message || err}`);
+    } finally {
+      setIsProcessingImport(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleApplyImport = () => {
+    if (!importModal.result) return;
+    const importedRecords = importModal.result.records;
+    if (importedRecords.length === 0) {
+      alert("Tidak ada data presensi yang valid untuk diimpor.");
+      return;
+    }
+
+    let nextAttendance: AttendanceRecord[] = [];
+
+    if (importModal.mergeMode === "replace_all") {
+      nextAttendance = [...importedRecords];
+    } else if (importModal.mergeMode === "replace_month") {
+      const datesList = importModal.result.summary.datesFound || [];
+      const monthsSet = new Set(datesList.map((d: string) => d.substring(0, 7)));
+      // Keep all records that are NOT in the months from imported file
+      const kept = attendanceRecords.filter((r) => {
+        const month = (r.date || "").substring(0, 7);
+        return !monthsSet.has(month);
+      });
+      nextAttendance = [...kept, ...importedRecords];
+    } else {
+      // Merge mode: replace matching (date + studentId) or append new
+      const importedKeys = new Set(
+        importedRecords.map((r) => `${r.date}_${r.studentId}`)
+      );
+      const kept = attendanceRecords.filter(
+        (r) => !importedKeys.has(`${r.date}_${r.studentId}`)
+      );
+      nextAttendance = [...kept, ...importedRecords];
+    }
+
+    onSaveAttendance(nextAttendance);
+
+    setSavedAlert(
+      `✅ Berhasil mengimpor ${importedRecords.length} data presensi (${importModal.result.summary.matchedStudentsCount} siswa cocok)!`
+    );
+    setTimeout(() => setSavedAlert(false), 5000);
+
+    setImportModal({ isOpen: false, mode: "matrix", mergeMode: "merge" });
+  };
+
   // Filtered history records
   const filteredHistoryRecords = attendanceRecords.filter((r) => {
     const student = students.find((s) => s.id === r.studentId);
@@ -819,7 +984,27 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-semibold">
+              {/* Template Buttons for Log / History */}
+              <button
+                onClick={handleDownloadDailyLogTemplate}
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                title="Unduh format spreadsheet log presensi harian untuk Google Sheets / Excel"
+              >
+                <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                Unduh Format Log
+              </button>
+
+              <button
+                onClick={() => dailyLogFileInputRef.current?.click()}
+                disabled={isProcessingImport}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                title="Unggah spreadsheet log presensi harian (.xlsx / .csv)"
+              >
+                <FileUp className="w-3.5 h-3.5 text-indigo-600" />
+                {isProcessingImport ? "Memproses..." : "Unggah File Log"}
+              </button>
+
+              <span className="text-xs text-slate-500 font-semibold ml-2">
                 Total Entri: <b>{filteredHistoryRecords.length}</b>
               </span>
             </div>
@@ -1055,6 +1240,28 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {/* Template Buttons */}
+              <button
+                onClick={handleDownloadMonthlyMatrixTemplate}
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                title="Unduh format spreadsheet matriks bulanan untuk diisi di Google Sheets / Excel"
+              >
+                <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                Unduh Template Sheets Matriks
+              </button>
+
+              <button
+                onClick={() => matrixFileInputRef.current?.click()}
+                disabled={isProcessingImport}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                title="Unggah template matriks (.xlsx / .csv) yang sudah diisi dari Google Sheets / Excel"
+              >
+                <FileUp className="w-3.5 h-3.5 text-indigo-600" />
+                {isProcessingImport ? "Memproses..." : "Unggah Template Matriks"}
+              </button>
+
+              <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+
               <button
                 onClick={handleExportMatrixExcel}
                 className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
@@ -1082,12 +1289,15 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
             </div>
           </div>
 
-          {/* Quick Legend & Help */}
-          <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-3">
-            <span className="font-bold text-slate-700">
-              Keterangan Kode Absen Matriks Tanggal 1 s.d. 31 ({getMonthLabel(selectedMatrixMonth)}):
-            </span>
-            <div className="flex flex-wrap items-center gap-2 font-semibold">
+          {/* Quick Legend & Google Sheets Template Help */}
+          <div className="bg-gradient-to-r from-emerald-50 via-slate-50 to-indigo-50 p-3.5 rounded-xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <b>Template Google Sheets & Excel:</b> Unduh template matriks, buka/edit di Google Sheets (atau Excel), lalu unggah kembali untuk mengisi otomatis rekap absensi 1-31.
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 font-semibold text-[11px]">
               <span className="px-2 py-0.5 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded">
                 <b>H</b> = Hadir
               </span>
@@ -1099,9 +1309,6 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
               </span>
               <span className="px-2 py-0.5 bg-red-100 text-red-900 border border-red-300 rounded">
                 <b>A</b> = Alpa
-              </span>
-              <span className="text-slate-400 italic">
-                * Klik sel mana saja untuk mengubah status/alasan presensi secara cepat.
               </span>
             </div>
           </div>
@@ -1345,6 +1552,28 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {/* Template Buttons for Semester Recap */}
+              <button
+                onClick={handleDownloadSemesterRecapTemplate}
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                title="Unduh template rekap semester & log detail untuk Google Sheets / Excel"
+              >
+                <FileDown className="w-3.5 h-3.5 text-emerald-600" />
+                Unduh Template Sheets Rekap
+              </button>
+
+              <button
+                onClick={() => semesterFileInputRef.current?.click()}
+                disabled={isProcessingImport}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-300 text-xs font-bold rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
+                title="Unggah template rekap semester / log detail (.xlsx / .csv)"
+              >
+                <FileUp className="w-3.5 h-3.5 text-indigo-600" />
+                {isProcessingImport ? "Memproses..." : "Unggah File Rekap"}
+              </button>
+
+              <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
+
               <button
                 onClick={() => exportAttendanceToExcel(students, attendanceRecords, selectedMonthFilter, schoolIdentity)}
                 className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1.5 transition-colors"
@@ -1369,6 +1598,16 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
                 <Printer className="w-3.5 h-3.5" />
                 Cetak / PDF
               </button>
+            </div>
+          </div>
+
+          {/* Quick Legend & Google Sheets Template Help for Semester */}
+          <div className="bg-gradient-to-r from-emerald-50 via-slate-50 to-indigo-50 p-3.5 rounded-xl border border-slate-200 text-xs flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-slate-700">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <b>Template Rekap Semester & Log:</b> File template berisi 2 lembar kerja (<i>Rekap_Semester</i> dan <i>Log_Presensi_Detail</i>). Anda dapat mengisi tanggal dan catatan ketidakhadiran di Google Sheets/Excel lalu mengunggahnya kembali ke sistem.
+              </span>
             </div>
           </div>
 
@@ -1425,6 +1664,211 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
                   })}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden File Input Elements for Template Uploads */}
+      <input
+        type="file"
+        ref={matrixFileInputRef}
+        accept=".xlsx,.xls,.csv"
+        onChange={handleUploadMatrixFile}
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={semesterFileInputRef}
+        accept=".xlsx,.xls,.csv"
+        onChange={handleUploadSemesterFile}
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={dailyLogFileInputRef}
+        accept=".xlsx,.xls,.csv"
+        onChange={handleUploadDailyLogFile}
+        className="hidden"
+      />
+
+      {/* =========================================================================
+          IMPORT PREVIEW & CONFIRMATION MODAL
+         ========================================================================= */}
+      {importModal.isOpen && importModal.result && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-xs">
+                  <FileSpreadsheet className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">
+                    Konfirmasi Impor Template Presensi
+                  </h3>
+                  <p className="text-xs text-emerald-100 font-medium">
+                    {importModal.fileName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportModal({ isOpen: false, mode: "matrix", mergeMode: "merge" })}
+                className="text-white/80 hover:text-white p-1 rounded-lg hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700">
+              {/* Summary Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                  <span className="block text-[10px] text-emerald-700 font-semibold uppercase">Total Baris / Catatan</span>
+                  <span className="text-lg font-black text-emerald-900">
+                    {importModal.result.records.length}
+                  </span>
+                </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                  <span className="block text-[10px] text-blue-700 font-semibold uppercase">Siswa Cocok</span>
+                  <span className="text-lg font-black text-blue-900">
+                    {importModal.result.summary.matchedStudentsCount} / {students.length}
+                  </span>
+                </div>
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <span className="block text-[10px] text-amber-700 font-semibold uppercase">Jumlah Tanggal</span>
+                  <span className="text-lg font-black text-amber-900">
+                    {importModal.result.summary.datesFound.length}
+                  </span>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <span className="block text-[10px] text-slate-600 font-semibold uppercase">Jenis Template</span>
+                  <span className="text-xs font-bold text-slate-900 mt-1 block">
+                    {importModal.mode === "matrix" ? "Matriks Bulanan" : importModal.mode === "semester" ? "Rekap Semester" : "Log Harian"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Status Counts Breakdown */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                <span className="font-bold text-slate-800 block">Rincian Status Terbaca:</span>
+                <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-md">
+                    Hadir (H): {importModal.result.summary.statusCounts.H}
+                  </span>
+                  <span className="px-2.5 py-1 bg-amber-100 text-amber-900 border border-amber-300 rounded-md">
+                    Sakit (S): {importModal.result.summary.statusCounts.S}
+                  </span>
+                  <span className="px-2.5 py-1 bg-blue-100 text-blue-900 border border-blue-300 rounded-md">
+                    Izin (I): {importModal.result.summary.statusCounts.I}
+                  </span>
+                  <span className="px-2.5 py-1 bg-red-100 text-red-900 border border-red-300 rounded-md">
+                    Alpa (A): {importModal.result.summary.statusCounts.A}
+                  </span>
+                </div>
+              </div>
+
+              {/* Warnings if any */}
+              {importModal.result.warnings.length > 0 && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1 text-amber-900">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Catatan / Peringatan Pencocokan ({importModal.result.warnings.length}):</span>
+                  </div>
+                  <ul className="list-disc pl-5 space-y-0.5 max-h-24 overflow-y-auto text-[11px] text-amber-800">
+                    {importModal.result.warnings.map((w, idx) => (
+                      <li key={idx}>{w}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Strategy Choice */}
+              <div className="space-y-2">
+                <label className="block font-bold text-slate-800">
+                  Pilih Cara Penggabungan Data:
+                </label>
+                <div className="space-y-2">
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    importModal.mergeMode === "merge" ? "bg-emerald-50/70 border-emerald-500" : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="mergeMode"
+                      value="merge"
+                      checked={importModal.mergeMode === "merge"}
+                      onChange={() => setImportModal({ ...importModal, mergeMode: "merge" })}
+                      className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Gabungkan (Rekomendasi)</span>
+                      <span className="text-[11px] text-slate-500">
+                        Perbarui/tambahkan data pada tanggal yang ada dalam file, dan tetap pertahankan riwayat tanggal lainnya.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    importModal.mergeMode === "replace_month" ? "bg-emerald-50/70 border-emerald-500" : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="mergeMode"
+                      value="replace_month"
+                      checked={importModal.mergeMode === "replace_month"}
+                      onChange={() => setImportModal({ ...importModal, mergeMode: "replace_month" })}
+                      className="mt-0.5 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Ganti Seluruh Data Pada Bulan Terkait</span>
+                      <span className="text-[11px] text-slate-500">
+                        Hapus data lama khusus untuk bulan yang ada di file, lalu isi dengan data baru ini.
+                      </span>
+                    </div>
+                  </label>
+
+                  <label className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    importModal.mergeMode === "replace_all" ? "bg-red-50/70 border-red-500" : "bg-white border-slate-200 hover:bg-slate-50"
+                  }`}>
+                    <input
+                      type="radio"
+                      name="mergeMode"
+                      value="replace_all"
+                      checked={importModal.mergeMode === "replace_all"}
+                      onChange={() => setImportModal({ ...importModal, mergeMode: "replace_all" })}
+                      className="mt-0.5 text-red-600 focus:ring-red-500"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 block">Timpa Seluruh Database Presensi</span>
+                      <span className="text-[11px] text-slate-500">
+                        Hapus seluruh data presensi di aplikasi dan ganti sepenuhnya dengan data dari file ini.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setImportModal({ isOpen: false, mode: "matrix", mergeMode: "merge" })}
+                className="px-4 py-2 text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyImport}
+                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md transition-colors flex items-center gap-1.5"
+              >
+                <Check className="w-4 h-4" />
+                Terapkan Impor ke Aplikasi
+              </button>
             </div>
           </div>
         </div>

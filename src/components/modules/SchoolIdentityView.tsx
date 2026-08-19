@@ -54,26 +54,24 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
       const base64Data = await compressImageFile(file, maxWidth, maxHeight, 0.88);
 
       if (base64Data) {
-        setFormData((prev) => {
-          const updated: SchoolIdentity = {
-            ...prev,
-            [fieldName]: base64Data,
-            ...(fieldName === "logoLeftUrl" ? { logoUrl: base64Data } : {}),
-          };
+        const updated: SchoolIdentity = {
+          ...formData,
+          [fieldName]: base64Data,
+          ...(fieldName === "logoLeftUrl" ? { logoUrl: base64Data } : {}),
+        };
 
-          if (isBanner) {
-            try {
-              localStorage.setItem("adm_guru_kop_banner", base64Data);
-            } catch (err) {
-              console.error("Gagal simpan adm_guru_kop_banner di localStorage:", err);
-            }
+        if (isBanner) {
+          try {
+            localStorage.setItem("adm_guru_kop_banner", base64Data);
+          } catch (err) {
+            console.error("Gagal simpan adm_guru_kop_banner di localStorage:", err);
           }
+        }
 
-          saveToStorage("schoolIdentity", updated);
-          saveToStorage(STORAGE_KEYS.IDENTITY, updated);
-          onSave(updated);
-          return updated;
-        });
+        saveToStorage("schoolIdentity", updated);
+        saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+        setFormData(updated);
+        onSave(updated);
 
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
@@ -89,47 +87,41 @@ export const SchoolIdentityView: React.FC<SchoolIdentityViewProps> = ({
     } catch {
       /* ignore */
     }
-    setFormData((prev) => {
-      const updated: SchoolIdentity = {
-        ...prev,
-        kopSuratBannerUrl: "",
-      };
-      saveToStorage("schoolIdentity", updated);
-      saveToStorage(STORAGE_KEYS.IDENTITY, updated);
-      onSave(updated);
-      return updated;
-    });
+    const updated: SchoolIdentity = {
+      ...formData,
+      kopSuratBannerUrl: "",
+    };
+    saveToStorage("schoolIdentity", updated);
+    saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+    setFormData(updated);
+    onSave(updated);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2000);
   };
 
   const handleResetLogoLeft = () => {
     const defaultLeft = getDefaultLogoLeft();
-    setFormData((prev) => {
-      const updated: SchoolIdentity = {
-        ...prev,
-        logoLeftUrl: defaultLeft,
-        logoUrl: defaultLeft,
-      };
-      saveToStorage("schoolIdentity", updated);
-      saveToStorage(STORAGE_KEYS.IDENTITY, updated);
-      onSave(updated);
-      return updated;
-    });
+    const updated: SchoolIdentity = {
+      ...formData,
+      logoLeftUrl: defaultLeft,
+      logoUrl: defaultLeft,
+    };
+    saveToStorage("schoolIdentity", updated);
+    saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+    setFormData(updated);
+    onSave(updated);
   };
 
   const handleResetLogoRight = () => {
     const defaultRight = getDefaultLogoRight();
-    setFormData((prev) => {
-      const updated: SchoolIdentity = {
-        ...prev,
-        logoRightUrl: defaultRight,
-      };
-      saveToStorage("schoolIdentity", updated);
-      saveToStorage(STORAGE_KEYS.IDENTITY, updated);
-      onSave(updated);
-      return updated;
-    });
+    const updated: SchoolIdentity = {
+      ...formData,
+      logoRightUrl: defaultRight,
+    };
+    saveToStorage("schoolIdentity", updated);
+    saveToStorage(STORAGE_KEYS.IDENTITY, updated);
+    setFormData(updated);
+    onSave(updated);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
