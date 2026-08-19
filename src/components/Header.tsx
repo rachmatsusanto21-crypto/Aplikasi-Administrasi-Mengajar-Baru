@@ -84,6 +84,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* Real-time Auto-Save Status Indicator */}
+          <div
+            title="Sistem Auto-Save Aktif: Setiap input nilai, absen, modul ajar, dan perubahan data langsung tersimpan otomatis secara real-time"
+            className="hidden xl:flex items-center gap-1.5 px-2 py-1 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded text-[11px] font-bold text-emerald-800 dark:text-emerald-300 select-none"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Auto-Save Aktif</span>
+          </div>
+
           {/* User Management Button */}
           {onOpenUsersModal && (
             <button

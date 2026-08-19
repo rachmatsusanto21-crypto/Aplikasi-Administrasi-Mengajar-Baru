@@ -132,13 +132,24 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
   };
 
   const handleMarkAllHadir = () => {
-    setDailyStatusMap((prev) => {
-      const updated = { ...prev };
-      Object.keys(updated).forEach((id) => {
-        updated[id] = { status: "H", reason: "" };
-      });
-      return updated;
+    const updatedMap: Record<string, { status: AttendanceStatus; reason: string }> = {};
+    students.forEach((id) => {
+      updatedMap[id.id] = { status: "H", reason: "" };
     });
+    setDailyStatusMap(updatedMap);
+
+    // Auto-save to parent attendanceRecords immediately!
+    const otherRecords = attendanceRecords.filter((r) => r.date !== selectedDate);
+    const newRecordsForDate: AttendanceRecord[] = students.map((s) => ({
+      id: `att_${selectedDate}_${s.id}`,
+      date: selectedDate,
+      studentId: s.id,
+      status: "H" as AttendanceStatus,
+      reason: "",
+    }));
+    onSaveAttendance([...otherRecords, ...newRecordsForDate]);
+    setSavedAlert(`Semua siswa berhasil ditandai HADIR & tersimpan otomatis!`);
+    setTimeout(() => setSavedAlert(false), 2000);
   };
 
   const handleStatusChange = (
@@ -146,10 +157,25 @@ export const BulkAttendanceView: React.FC<BulkAttendanceViewProps> = ({
     status: AttendanceStatus,
     reason: string = ""
   ) => {
-    setDailyStatusMap((prev) => ({
-      ...prev,
+    const updatedMap = {
+      ...dailyStatusMap,
       [studentId]: { status, reason },
-    }));
+    };
+    setDailyStatusMap(updatedMap);
+
+    // Auto-save to parent attendanceRecords immediately!
+    const otherRecords = attendanceRecords.filter((r) => r.date !== selectedDate);
+    const newRecordsForDate: AttendanceRecord[] = [];
+    Object.entries(updatedMap).forEach(([sId, data]: [string, { status: AttendanceStatus; reason: string }]) => {
+      newRecordsForDate.push({
+        id: `att_${selectedDate}_${sId}`,
+        date: selectedDate,
+        studentId: sId,
+        status: data.status,
+        reason: data.reason,
+      });
+    });
+    onSaveAttendance([...otherRecords, ...newRecordsForDate]);
   };
 
   const handleSaveDailyAttendance = () => {

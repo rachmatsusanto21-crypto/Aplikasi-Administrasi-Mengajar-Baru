@@ -58,16 +58,76 @@ const STORAGE_KEYS = {
   MEDIA_BANANA_HISTORY: "adm_guru_media_banana_history",
 };
 
+// Aliases mapping to ensure 100% interoperability between all key styles
+const KEY_ALIASES: Record<string, string[]> = {
+  schoolIdentity: [STORAGE_KEYS.IDENTITY, "schoolIdentity", "identity"],
+  [STORAGE_KEYS.IDENTITY]: [STORAGE_KEYS.IDENTITY, "schoolIdentity", "identity"],
+  students: [STORAGE_KEYS.STUDENTS, "students"],
+  [STORAGE_KEYS.STUDENTS]: [STORAGE_KEYS.STUDENTS, "students"],
+  attendanceRecords: [STORAGE_KEYS.ATTENDANCE, "attendanceRecords", "attendance"],
+  [STORAGE_KEYS.ATTENDANCE]: [STORAGE_KEYS.ATTENDANCE, "attendanceRecords", "attendance"],
+  cptpItems: [STORAGE_KEYS.CPTP, "cptpItems", "cptp"],
+  [STORAGE_KEYS.CPTP]: [STORAGE_KEYS.CPTP, "cptpItems", "cptp"],
+  incidents: [STORAGE_KEYS.INCIDENTS, "incidents"],
+  [STORAGE_KEYS.INCIDENTS]: [STORAGE_KEYS.INCIDENTS, "incidents"],
+  grades: [STORAGE_KEYS.GRADES, "grades"],
+  [STORAGE_KEYS.GRADES]: [STORAGE_KEYS.GRADES, "grades"],
+  dailyGrades: ["dailyGrades", "daily_grades", "adm_guru_daily_grades", "rekapNilaiHarian"],
+  teachingModules: [STORAGE_KEYS.MODUL_AJAR, "teachingModules", "modulAjar", "modul_ajar"],
+  [STORAGE_KEYS.MODUL_AJAR]: [STORAGE_KEYS.MODUL_AJAR, "teachingModules", "modulAjar", "modul_ajar"],
+  savedExams: ["savedExams", "saved_exams", "adm_guru_saved_exams", "examPackages", "exams"],
+  protaList: [STORAGE_KEYS.PROTA, "protaList", "prota"],
+  [STORAGE_KEYS.PROTA]: [STORAGE_KEYS.PROTA, "protaList", "prota"],
+  promesList: [STORAGE_KEYS.PROMES, "promesList", "promes"],
+  [STORAGE_KEYS.PROMES]: [STORAGE_KEYS.PROMES, "promesList", "promes"],
+  timetable: [STORAGE_KEYS.TIMETABLE, "timetable"],
+  [STORAGE_KEYS.TIMETABLE]: [STORAGE_KEYS.TIMETABLE, "timetable"],
+  guestBook: [STORAGE_KEYS.GUESTBOOK, "guestBook", "guestbook"],
+  [STORAGE_KEYS.GUESTBOOK]: [STORAGE_KEYS.GUESTBOOK, "guestBook", "guestbook"],
+  incidentalJournals: [STORAGE_KEYS.INCIDENTAL, "incidentalJournals", "incidental"],
+  [STORAGE_KEYS.INCIDENTAL]: [STORAGE_KEYS.INCIDENTAL, "incidentalJournals", "incidental"],
+  dailyLogs: [STORAGE_KEYS.TEACHING_JOURNAL, "dailyLogs", "daily_logs", "teaching_journal"],
+  [STORAGE_KEYS.TEACHING_JOURNAL]: [STORAGE_KEYS.TEACHING_JOURNAL, "dailyLogs", "daily_logs", "teaching_journal"],
+  calendarEvents: [STORAGE_KEYS.CALENDAR, "calendarEvents", "calendar"],
+  [STORAGE_KEYS.CALENDAR]: [STORAGE_KEYS.CALENDAR, "calendarEvents", "calendar"],
+  aiSettings: [STORAGE_KEYS.AI_SETTINGS, "aiSettings"],
+  [STORAGE_KEYS.AI_SETTINGS]: [STORAGE_KEYS.AI_SETTINGS, "aiSettings"],
+  gasConfig: ["gasConfig", "adm_guru_gas_config"],
+  usersList: ["usersList", "users", "adm_guru_users"],
+  canvaTemplates: ["canvaTemplates", "adm_guru_canva_templates"],
+};
+
 export function loadStoredData<T>(key: string, defaultValue: T): T {
   try {
-    const raw = localStorage.getItem(key);
-    if (!raw || raw === "undefined" || raw === "null") return defaultValue;
-    const parsed = JSON.parse(raw);
-    if (parsed === null || parsed === undefined) return defaultValue;
-    if (typeof defaultValue === "object" && defaultValue !== null && !Array.isArray(defaultValue)) {
-      return { ...defaultValue, ...parsed };
+    const candidateKeys = KEY_ALIASES[key] || [key];
+    for (const candidateKey of candidateKeys) {
+      const raw = localStorage.getItem(candidateKey);
+      if (!raw || raw === "undefined" || raw === "null") continue;
+      const parsed = JSON.parse(raw);
+      if (parsed === null || parsed === undefined) continue;
+      if (Array.isArray(defaultValue) && Array.isArray(parsed) && parsed.length === 0) {
+        // If empty array, continue to check if another alias has populated records
+        continue;
+      }
+      if (typeof defaultValue === "object" && defaultValue !== null && !Array.isArray(defaultValue)) {
+        return { ...defaultValue, ...parsed };
+      }
+      return parsed;
     }
-    return parsed;
+
+    // Try standard fallback load for initial key
+    const directRaw = localStorage.getItem(key);
+    if (directRaw && directRaw !== "undefined" && directRaw !== "null") {
+      const parsed = JSON.parse(directRaw);
+      if (parsed !== null && parsed !== undefined) {
+        if (typeof defaultValue === "object" && defaultValue !== null && !Array.isArray(defaultValue)) {
+          return { ...defaultValue, ...parsed };
+        }
+        return parsed;
+      }
+    }
+
+    return defaultValue;
   } catch (err) {
     console.error(`Error loading storage for key ${key}:`, err);
     return defaultValue;
@@ -78,7 +138,17 @@ export const loadFromStorage = loadStoredData;
 
 export function saveStoredData<T>(key: string, value: T): void {
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const jsonStr = JSON.stringify(value);
+    const candidateKeys = KEY_ALIASES[key] || [key];
+    
+    // Save to all key aliases simultaneously for complete sync
+    for (const candidateKey of candidateKeys) {
+      localStorage.setItem(candidateKey, jsonStr);
+    }
+    
+    // Update global last saved timestamp
+    localStorage.setItem("app_last_saved_timestamp", new Date().toISOString());
+    localStorage.setItem("app_last_save_status", "saved");
   } catch (err) {
     console.error(`Error saving storage for key ${key}:`, err);
   }

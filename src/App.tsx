@@ -436,112 +436,112 @@ export default function App() {
 
     // 2. Students
     const restoredStudents = payload.students || payload.adm_guru_students;
-    if (Array.isArray(restoredStudents)) {
+    if (Array.isArray(restoredStudents) && (restoredStudents.length > 0 || students.length === 0)) {
       setStudents(restoredStudents);
       saveToStorage("students", restoredStudents);
     }
 
     // 3. Attendance
     const restoredAttendance = payload.attendanceRecords || payload.attendance || payload.adm_guru_attendance;
-    if (Array.isArray(restoredAttendance)) {
+    if (Array.isArray(restoredAttendance) && (restoredAttendance.length > 0 || attendanceRecords.length === 0)) {
       setAttendanceRecords(restoredAttendance);
       saveToStorage("attendanceRecords", restoredAttendance);
     }
 
     // 4. CPTP
     const restoredCPTP = payload.cptpItems || payload.cptp || payload.adm_guru_cptp;
-    if (Array.isArray(restoredCPTP)) {
+    if (Array.isArray(restoredCPTP) && (restoredCPTP.length > 0 || cptpItems.length === 0)) {
       setCPTPItems(restoredCPTP);
       saveToStorage("cptpItems", restoredCPTP);
     }
 
     // 5. Incidents
     const restoredIncidents = payload.incidents || payload.adm_guru_incidents;
-    if (Array.isArray(restoredIncidents)) {
+    if (Array.isArray(restoredIncidents) && (restoredIncidents.length > 0 || incidents.length === 0)) {
       setIncidents(restoredIncidents);
       saveToStorage("incidents", restoredIncidents);
     }
 
     // 6. Grades
     const restoredGrades = payload.grades || payload.adm_guru_grades;
-    if (Array.isArray(restoredGrades)) {
+    if (Array.isArray(restoredGrades) && (restoredGrades.length > 0 || grades.length === 0)) {
       setGrades(restoredGrades);
       saveToStorage("grades", restoredGrades);
     }
 
     // 7. Daily Grades
-    const restoredDailyGrades = payload.dailyGrades || payload.daily_grades || payload.rekapNilaiHarian;
-    if (Array.isArray(restoredDailyGrades)) {
+    const restoredDailyGrades = payload.dailyGrades || payload.daily_grades || payload.adm_guru_daily_grades || payload.rekapNilaiHarian;
+    if (Array.isArray(restoredDailyGrades) && (restoredDailyGrades.length > 0 || dailyGrades.length === 0)) {
       setDailyGrades(restoredDailyGrades);
       saveToStorage("dailyGrades", restoredDailyGrades);
     }
 
     // 8. Subjects
     const restoredSubjects = payload.subjects || payload.customSubjects;
-    if (Array.isArray(restoredSubjects)) {
+    if (Array.isArray(restoredSubjects) && restoredSubjects.length > 0) {
       setSubjects(restoredSubjects);
       saveToStorage("customSubjects", restoredSubjects.filter((s: string) => !DEFAULT_SUBJECTS.includes(s)));
     }
 
     // 9. Timetable
     const restoredTimetable = payload.timetable || payload.adm_guru_timetable;
-    if (Array.isArray(restoredTimetable)) {
+    if (Array.isArray(restoredTimetable) && (restoredTimetable.length > 0 || timetable.length === 0)) {
       setTimetable(restoredTimetable);
       saveToStorage("timetable", restoredTimetable);
     }
 
     // 10. Guest Book
     const restoredGuestBook = payload.guestBook || payload.guestbook || payload.adm_guru_guestbook;
-    if (Array.isArray(restoredGuestBook)) {
+    if (Array.isArray(restoredGuestBook) && (restoredGuestBook.length > 0 || guestBook.length === 0)) {
       setGuestBook(restoredGuestBook);
       saveToStorage("guestBook", restoredGuestBook);
     }
 
     // 11. Incidental
     const restoredIncidental = payload.incidentalJournals || payload.incidental || payload.adm_guru_incidental;
-    if (Array.isArray(restoredIncidental)) {
+    if (Array.isArray(restoredIncidental) && (restoredIncidental.length > 0 || incidentalJournals.length === 0)) {
       setIncidentalJournals(restoredIncidental);
       saveToStorage("incidentalJournals", restoredIncidental);
     }
 
     // 12. Daily Logs
     const restoredDailyLogs = payload.dailyLogs || payload.daily_logs || payload.teaching_journal || payload.adm_guru_teaching_journal;
-    if (Array.isArray(restoredDailyLogs)) {
+    if (Array.isArray(restoredDailyLogs) && (restoredDailyLogs.length > 0 || dailyLogs.length === 0)) {
       setDailyLogs(restoredDailyLogs);
       saveToStorage("dailyLogs", restoredDailyLogs);
     }
 
     // 13. Calendar
     const restoredCalendar = payload.calendarEvents || payload.calendar || payload.adm_guru_calendar;
-    if (Array.isArray(restoredCalendar)) {
+    if (Array.isArray(restoredCalendar) && (restoredCalendar.length > 0 || calendarEvents.length === 0)) {
       setCalendarEvents(restoredCalendar);
       saveToStorage("calendarEvents", restoredCalendar);
     }
 
     // 14. Prota
     const restoredProta = payload.protaList || payload.prota || payload.adm_guru_prota;
-    if (Array.isArray(restoredProta)) {
+    if (Array.isArray(restoredProta) && (restoredProta.length > 0 || protaList.length === 0)) {
       setProtaList(restoredProta);
       saveToStorage("protaList", restoredProta);
     }
 
     // 15. Promes
     const restoredPromes = payload.promesList || payload.promes || payload.adm_guru_promes;
-    if (Array.isArray(restoredPromes)) {
+    if (Array.isArray(restoredPromes) && (restoredPromes.length > 0 || promesList.length === 0)) {
       setPromesList(restoredPromes);
       saveToStorage("promesList", restoredPromes);
     }
 
     // 16. Teaching Modules (MODUL AJAR) - CRITICAL
     const restoredModules = payload.teachingModules || payload.teaching_modules || payload.modulAjar || payload.modul_ajar || payload.adm_guru_modul_ajar;
-    if (Array.isArray(restoredModules)) {
+    if (Array.isArray(restoredModules) && (restoredModules.length > 0 || teachingModules.length === 0)) {
       setTeachingModules(restoredModules);
       saveToStorage("teachingModules", restoredModules);
     }
 
     // 17. Saved Exams (SOAL & KISI-KISI) - CRITICAL
-    const restoredExams = payload.savedExams || payload.saved_exams || payload.examPackages || payload.exams || payload.soal || payload.kisiKisi;
-    if (Array.isArray(restoredExams)) {
+    const restoredExams = payload.savedExams || payload.saved_exams || payload.adm_guru_saved_exams || payload.examPackages || payload.exams || payload.soal || payload.kisiKisi;
+    if (Array.isArray(restoredExams) && (restoredExams.length > 0 || savedExams.length === 0)) {
       setSavedExams(restoredExams);
       saveToStorage("savedExams", restoredExams);
     }
@@ -560,13 +560,13 @@ export default function App() {
     }
 
     // 20. Users
-    if (Array.isArray(payload.users)) {
+    if (Array.isArray(payload.users) && (payload.users.length > 0 || users.length === 0)) {
       setUsers(payload.users);
       saveToStorage("usersList", payload.users);
     }
 
     // 21. Canva Templates
-    if (Array.isArray(payload.canvaTemplates)) {
+    if (Array.isArray(payload.canvaTemplates) && (payload.canvaTemplates.length > 0 || canvaTemplates.length === 0)) {
       setCanvaTemplates(payload.canvaTemplates);
       saveToStorage("canvaTemplates", payload.canvaTemplates);
     }
@@ -599,10 +599,10 @@ export default function App() {
             dateStyle: "medium",
             timeStyle: "short",
           });
-          setSyncMessage(`Data otomatis tersinkronisasi dari Cloud (Versi terbaru: ${formattedTime})`);
-          setTimeout(() => setSyncMessage(null), 8000);
+          setSyncMessage(`Data otomatis tersinkronisasi dari Cloud (Versi: ${formattedTime})`);
+          setTimeout(() => setSyncMessage(null), 5000);
         } else if (manual) {
-          setSyncMessage("Data lokal Anda sudah paling baru dan sinkron dengan Cloud!");
+          setSyncMessage("Data lokal Anda sudah paling baru dan sinkron!");
           setTimeout(() => setSyncMessage(null), 4000);
         }
       } else if (manual) {
@@ -624,9 +624,9 @@ export default function App() {
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  // Auto-push state changes to server snapshot with timestamp
+  // Auto-push state changes to server snapshot with fast debounce & onUnload handler
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const pushSnapshot = () => {
       const nowISO = new Date().toISOString();
       localStorage.setItem("app_last_saved_timestamp", nowISO);
 
@@ -639,9 +639,28 @@ export default function App() {
           data: allDataPayload,
         }),
       }).catch((err) => console.error("Error auto-saving cloud snapshot:", err));
-    }, 2000);
+    };
 
-    return () => clearTimeout(timer);
+    const timer = setTimeout(pushSnapshot, 500);
+
+    const handleBeforeUnload = () => {
+      pushSnapshot();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        pushSnapshot();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [
     schoolIdentity,
     students,
