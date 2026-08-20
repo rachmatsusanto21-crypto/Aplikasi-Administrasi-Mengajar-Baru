@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   SchoolIdentity,
   Student,
@@ -366,6 +366,8 @@ export default function App() {
     saveToStorage("gasConfig", gasConfig);
   }, [gasConfig]);
 
+  // Track whether initial startup cloud backup check has completed to prevent overwriting
+  const hasInitialCheckedRef = useRef(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const allDataPayload = {
@@ -436,42 +438,42 @@ export default function App() {
 
     // 2. Students
     const restoredStudents = payload.students || payload.adm_guru_students;
-    if (Array.isArray(restoredStudents) && (restoredStudents.length > 0 || students.length === 0)) {
+    if (Array.isArray(restoredStudents) && restoredStudents.length > 0) {
       setStudents(restoredStudents);
       saveToStorage("students", restoredStudents);
     }
 
     // 3. Attendance
     const restoredAttendance = payload.attendanceRecords || payload.attendance || payload.adm_guru_attendance;
-    if (Array.isArray(restoredAttendance) && (restoredAttendance.length > 0 || attendanceRecords.length === 0)) {
+    if (Array.isArray(restoredAttendance)) {
       setAttendanceRecords(restoredAttendance);
       saveToStorage("attendanceRecords", restoredAttendance);
     }
 
     // 4. CPTP
     const restoredCPTP = payload.cptpItems || payload.cptp || payload.adm_guru_cptp;
-    if (Array.isArray(restoredCPTP) && (restoredCPTP.length > 0 || cptpItems.length === 0)) {
+    if (Array.isArray(restoredCPTP) && restoredCPTP.length > 0) {
       setCPTPItems(restoredCPTP);
       saveToStorage("cptpItems", restoredCPTP);
     }
 
     // 5. Incidents
     const restoredIncidents = payload.incidents || payload.adm_guru_incidents;
-    if (Array.isArray(restoredIncidents) && (restoredIncidents.length > 0 || incidents.length === 0)) {
+    if (Array.isArray(restoredIncidents)) {
       setIncidents(restoredIncidents);
       saveToStorage("incidents", restoredIncidents);
     }
 
     // 6. Grades
     const restoredGrades = payload.grades || payload.adm_guru_grades;
-    if (Array.isArray(restoredGrades) && (restoredGrades.length > 0 || grades.length === 0)) {
+    if (Array.isArray(restoredGrades)) {
       setGrades(restoredGrades);
       saveToStorage("grades", restoredGrades);
     }
 
     // 7. Daily Grades
     const restoredDailyGrades = payload.dailyGrades || payload.daily_grades || payload.adm_guru_daily_grades || payload.rekapNilaiHarian;
-    if (Array.isArray(restoredDailyGrades) && (restoredDailyGrades.length > 0 || dailyGrades.length === 0)) {
+    if (Array.isArray(restoredDailyGrades)) {
       setDailyGrades(restoredDailyGrades);
       saveToStorage("dailyGrades", restoredDailyGrades);
     }
@@ -485,63 +487,63 @@ export default function App() {
 
     // 9. Timetable
     const restoredTimetable = payload.timetable || payload.adm_guru_timetable;
-    if (Array.isArray(restoredTimetable) && (restoredTimetable.length > 0 || timetable.length === 0)) {
+    if (Array.isArray(restoredTimetable)) {
       setTimetable(restoredTimetable);
       saveToStorage("timetable", restoredTimetable);
     }
 
     // 10. Guest Book
     const restoredGuestBook = payload.guestBook || payload.guestbook || payload.adm_guru_guestbook;
-    if (Array.isArray(restoredGuestBook) && (restoredGuestBook.length > 0 || guestBook.length === 0)) {
+    if (Array.isArray(restoredGuestBook)) {
       setGuestBook(restoredGuestBook);
       saveToStorage("guestBook", restoredGuestBook);
     }
 
     // 11. Incidental
     const restoredIncidental = payload.incidentalJournals || payload.incidental || payload.adm_guru_incidental;
-    if (Array.isArray(restoredIncidental) && (restoredIncidental.length > 0 || incidentalJournals.length === 0)) {
+    if (Array.isArray(restoredIncidental)) {
       setIncidentalJournals(restoredIncidental);
       saveToStorage("incidentalJournals", restoredIncidental);
     }
 
     // 12. Daily Logs
     const restoredDailyLogs = payload.dailyLogs || payload.daily_logs || payload.teaching_journal || payload.adm_guru_teaching_journal;
-    if (Array.isArray(restoredDailyLogs) && (restoredDailyLogs.length > 0 || dailyLogs.length === 0)) {
+    if (Array.isArray(restoredDailyLogs)) {
       setDailyLogs(restoredDailyLogs);
       saveToStorage("dailyLogs", restoredDailyLogs);
     }
 
     // 13. Calendar
     const restoredCalendar = payload.calendarEvents || payload.calendar || payload.adm_guru_calendar;
-    if (Array.isArray(restoredCalendar) && (restoredCalendar.length > 0 || calendarEvents.length === 0)) {
+    if (Array.isArray(restoredCalendar)) {
       setCalendarEvents(restoredCalendar);
       saveToStorage("calendarEvents", restoredCalendar);
     }
 
     // 14. Prota
     const restoredProta = payload.protaList || payload.prota || payload.adm_guru_prota;
-    if (Array.isArray(restoredProta) && (restoredProta.length > 0 || protaList.length === 0)) {
+    if (Array.isArray(restoredProta)) {
       setProtaList(restoredProta);
       saveToStorage("protaList", restoredProta);
     }
 
     // 15. Promes
     const restoredPromes = payload.promesList || payload.promes || payload.adm_guru_promes;
-    if (Array.isArray(restoredPromes) && (restoredPromes.length > 0 || promesList.length === 0)) {
+    if (Array.isArray(restoredPromes)) {
       setPromesList(restoredPromes);
       saveToStorage("promesList", restoredPromes);
     }
 
     // 16. Teaching Modules (MODUL AJAR) - CRITICAL
     const restoredModules = payload.teachingModules || payload.teaching_modules || payload.modulAjar || payload.modul_ajar || payload.adm_guru_modul_ajar;
-    if (Array.isArray(restoredModules) && (restoredModules.length > 0 || teachingModules.length === 0)) {
+    if (Array.isArray(restoredModules)) {
       setTeachingModules(restoredModules);
       saveToStorage("teachingModules", restoredModules);
     }
 
     // 17. Saved Exams (SOAL & KISI-KISI) - CRITICAL
     const restoredExams = payload.savedExams || payload.saved_exams || payload.adm_guru_saved_exams || payload.examPackages || payload.exams || payload.soal || payload.kisiKisi;
-    if (Array.isArray(restoredExams) && (restoredExams.length > 0 || savedExams.length === 0)) {
+    if (Array.isArray(restoredExams)) {
       setSavedExams(restoredExams);
       saveToStorage("savedExams", restoredExams);
     }
@@ -560,13 +562,13 @@ export default function App() {
     }
 
     // 20. Users
-    if (Array.isArray(payload.users) && (payload.users.length > 0 || users.length === 0)) {
+    if (Array.isArray(payload.users) && payload.users.length > 0) {
       setUsers(payload.users);
       saveToStorage("usersList", payload.users);
     }
 
     // 21. Canva Templates
-    if (Array.isArray(payload.canvaTemplates) && (payload.canvaTemplates.length > 0 || canvaTemplates.length === 0)) {
+    if (Array.isArray(payload.canvaTemplates)) {
       setCanvaTemplates(payload.canvaTemplates);
       saveToStorage("canvaTemplates", payload.canvaTemplates);
     }
@@ -576,7 +578,23 @@ export default function App() {
     }
   };
 
-  // Cross-device auto sync & timestamp comparison handler
+  // Helper to count non-empty records in current state
+  const getCurrentRecordsCount = () => {
+    return (
+      (students?.length || 0) +
+      (attendanceRecords?.length || 0) +
+      (grades?.length || 0) +
+      (dailyGrades?.length || 0) +
+      (teachingModules?.length || 0) +
+      (cptpItems?.length || 0) +
+      (savedExams?.length || 0) +
+      (protaList?.length || 0) +
+      (promesList?.length || 0) +
+      (dailyLogs?.length || 0)
+    );
+  };
+
+  // Automatic restore handler: pulls the newest backup snapshot on app startup or manual refresh
   const checkAndRestoreLatestCloudData = async (manual = false) => {
     try {
       const res = await fetch("/api/backup/latest");
@@ -585,47 +603,94 @@ export default function App() {
           setSyncMessage("Gagal terhubung ke server cloud backup.");
           setTimeout(() => setSyncMessage(null), 4000);
         }
+        hasInitialCheckedRef.current = true;
         return;
       }
+
       const json = await res.json();
       if (json.status === "success" && json.data && json.timestamp) {
-        const cloudTime = new Date(json.timestamp).getTime();
+        const cloudTime = new Date(json.timestamp).getTime() || 0;
         const localTimeStr = localStorage.getItem("app_last_saved_timestamp");
         const localTime = localTimeStr ? new Date(localTimeStr).getTime() : 0;
+        const localCount = getCurrentRecordsCount();
+        const serverCount = json.totalItems || 0;
 
-        if (cloudTime > localTime || manual) {
+        // Auto-restore condition:
+        // 1. Manual click always restores
+        // 2. Cloud timestamp is newer than local timestamp
+        // 3. Or local data has default/minimal items while cloud has richer saved data
+        if (manual || cloudTime >= localTime || (localCount <= 5 && serverCount > localCount)) {
           handleRestoreData(json.data, json.timestamp);
           const formattedTime = new Date(json.timestamp).toLocaleString("id-ID", {
             dateStyle: "medium",
             timeStyle: "short",
           });
-          setSyncMessage(`Data otomatis tersinkronisasi dari Cloud (Versi: ${formattedTime})`);
-          setTimeout(() => setSyncMessage(null), 5000);
+          const sourceLabel = json.filename ? ` (${json.filename})` : "";
+          setSyncMessage(`✅ Data backup paling akhir berhasil dimuat otomatis: Versi ${formattedTime}${sourceLabel}`);
+          setTimeout(() => setSyncMessage(null), 6000);
         } else if (manual) {
           setSyncMessage("Data lokal Anda sudah paling baru dan sinkron!");
           setTimeout(() => setSyncMessage(null), 4000);
         }
+      } else if (gasConfig?.webAppUrl) {
+        // Fallback: If server is empty, check Google Drive Web App
+        try {
+          const fetchUrl = gasConfig.webAppUrl.includes("?")
+            ? `${gasConfig.webAppUrl}&action=listBackups`
+            : `${gasConfig.webAppUrl}?action=listBackups`;
+          const driveRes = await fetch(fetchUrl);
+          const driveJson = await driveRes.json();
+          if (driveJson && driveJson.status === "success" && Array.isArray(driveJson.backups) && driveJson.backups.length > 0) {
+            const newestDriveBackup = driveJson.backups[0];
+            if (newestDriveBackup.downloadUrl) {
+              const fileRes = await fetch(newestDriveBackup.downloadUrl);
+              const fileData = await fileRes.json();
+              if (fileData) {
+                handleRestoreData(fileData, newestDriveBackup.backupDate);
+                setSyncMessage(`✅ Data backup terbaru otomatis dimuat dari Google Drive: ${newestDriveBackup.filename}`);
+                setTimeout(() => setSyncMessage(null), 6000);
+              }
+            }
+          }
+        } catch (driveErr) {
+          console.warn("Drive auto-restore check:", driveErr);
+        }
       } else if (manual) {
-        setSyncMessage("Belum ada data cadangan di cloud server.");
+        setSyncMessage("Belum ada data cadangan tersimpan di server cloud.");
         setTimeout(() => setSyncMessage(null), 4000);
       }
     } catch (err) {
       console.warn("Auto restoring cloud backup status:", err);
+      if (manual) {
+        setSyncMessage("Koneksi jaringan backup terganggu.");
+        setTimeout(() => setSyncMessage(null), 4000);
+      }
+    } finally {
+      hasInitialCheckedRef.current = true;
     }
   };
 
+  // Run auto-restore immediately on app launch / window focus
   useEffect(() => {
-    checkAndRestoreLatestCloudData();
+    checkAndRestoreLatestCloudData(false);
 
     const handleFocus = () => {
-      checkAndRestoreLatestCloudData();
+      // Re-check on focus only if initial sync has occurred
+      if (hasInitialCheckedRef.current) {
+        checkAndRestoreLatestCloudData(false);
+      }
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
-  // Auto-push state changes to server snapshot with fast debounce & onUnload handler
+  // Auto-push state changes to server snapshot with safe debounce
+  // ONLY active AFTER initial restore check has completed (preventing overwrite on cold start)
   useEffect(() => {
+    if (!hasInitialCheckedRef.current) {
+      return;
+    }
+
     const pushSnapshot = () => {
       const nowISO = new Date().toISOString();
       localStorage.setItem("app_last_saved_timestamp", nowISO);
@@ -641,7 +706,7 @@ export default function App() {
       }).catch((err) => console.error("Error auto-saving cloud snapshot:", err));
     };
 
-    const timer = setTimeout(pushSnapshot, 500);
+    const timer = setTimeout(pushSnapshot, 800);
 
     const handleBeforeUnload = () => {
       pushSnapshot();
@@ -698,6 +763,7 @@ export default function App() {
         onOpenSheetsModal={() => setIsGasModalOpen(true)}
         onOpenBackupModal={() => setIsBackupModalOpen(true)}
         onOpenUsersModal={() => setIsUsersModalOpen(true)}
+        onReloadLatestBackup={() => checkAndRestoreLatestCloudData(true)}
       />
 
       {/* Cloud Auto-Sync Banner */}

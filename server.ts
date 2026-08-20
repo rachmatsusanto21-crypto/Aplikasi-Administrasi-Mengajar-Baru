@@ -88,20 +88,112 @@ app.post("/api/user-config", (req, res) => {
 
 const AUTO_SYNC_FILE = path.join(BACKUPS_DIR, "auto_sync_latest.json");
 
-// Fetch the latest global application data snapshot for automatic multi-device restore
+// Helper to extract items count from a backup object
+function getBackupItemsCount(dataObj: any): number {
+  if (!dataObj || typeof dataObj !== "object") return 0;
+  let count = 0;
+  const keys = [
+    "students",
+    "attendanceRecords",
+    "grades",
+    "dailyGrades",
+    "teachingModules",
+    "cptpItems",
+    "savedExams",
+    "protaList",
+    "promesList",
+    "timetable",
+    "dailyLogs",
+    "incidents",
+    "calendarEvents",
+  ];
+  for (const k of keys) {
+    if (Array.isArray(dataObj[k])) {
+      count += dataObj[k].length;
+    }
+  }
+  return count;
+}
+
+// Fetch the latest global application data snapshot for automatic restore
 app.get("/api/backup/latest", (req, res) => {
   try {
+    let latestCandidate: {
+      timestamp: string;
+      timeMs: number;
+      data: any;
+      schoolName: string;
+      filename: string;
+      itemCount: number;
+    } | null = null;
+
+    // 1. Check auto_sync_latest.json
     if (fs.existsSync(AUTO_SYNC_FILE)) {
-      const content = fs.readFileSync(AUTO_SYNC_FILE, "utf-8");
-      const parsed = JSON.parse(content);
+      try {
+        const stats = fs.statSync(AUTO_SYNC_FILE);
+        const content = fs.readFileSync(AUTO_SYNC_FILE, "utf-8");
+        const parsed = JSON.parse(content);
+        const dateStr = parsed.timestamp || parsed.backupDate || stats.mtime.toISOString();
+        const timeMs = new Date(dateStr).getTime() || stats.mtimeMs;
+        const backupData = parsed.data || parsed;
+        const items = getBackupItemsCount(backupData);
+
+        latestCandidate = {
+          timestamp: dateStr,
+          timeMs,
+          data: backupData,
+          schoolName: parsed.schoolName || backupData?.schoolIdentity?.schoolName || "Sekolah",
+          filename: "auto_sync_latest.json",
+          itemCount: items,
+        };
+      } catch (e) {
+        console.error("Error reading auto_sync_latest.json:", e);
+      }
+    }
+
+    // 2. Also inspect all .json files in BACKUPS_DIR to see if there is a newer snapshot
+    if (fs.existsSync(BACKUPS_DIR)) {
+      const files = fs.readdirSync(BACKUPS_DIR).filter((f) => f.endsWith(".json"));
+      for (const file of files) {
+        if (file === "auto_sync_latest.json") continue;
+        try {
+          const filePath = path.join(BACKUPS_DIR, file);
+          const stats = fs.statSync(filePath);
+          const content = fs.readFileSync(filePath, "utf-8");
+          const parsed = JSON.parse(content);
+          const dateStr = parsed.backupDate || parsed.timestamp || stats.mtime.toISOString();
+          const timeMs = new Date(dateStr).getTime() || stats.mtimeMs;
+          const backupData = parsed.data || parsed;
+          const items = getBackupItemsCount(backupData);
+
+          if (!latestCandidate || timeMs > latestCandidate.timeMs) {
+            latestCandidate = {
+              timestamp: dateStr,
+              timeMs,
+              data: backupData,
+              schoolName: parsed.schoolName || backupData?.schoolIdentity?.schoolName || "Sekolah",
+              filename: file,
+              itemCount: items,
+            };
+          }
+        } catch (e) {
+          // ignore corrupted file
+        }
+      }
+    }
+
+    if (latestCandidate && latestCandidate.data) {
       return res.json({
         status: "success",
-        timestamp: parsed.timestamp || parsed.backupDate || null,
-        data: parsed.data || null,
-        schoolName: parsed.schoolName || "",
+        timestamp: latestCandidate.timestamp,
+        data: latestCandidate.data,
+        schoolName: latestCandidate.schoolName,
+        filename: latestCandidate.filename,
+        totalItems: latestCandidate.itemCount,
       });
     }
-    return res.json({ status: "empty", message: "Belum ada data backup di cloud" });
+
+    return res.json({ status: "empty", message: "Belum ada data backup di server" });
   } catch (err: any) {
     console.error("Error reading latest backup snapshot:", err);
     return res.status(500).json({ error: "Gagal membaca snapshot data terbaru" });
@@ -112,7 +204,7 @@ app.get("/api/backup/latest", (req, res) => {
 app.post("/api/backup/save-latest", (req, res) => {
   try {
     const { timestamp, schoolName, data } = req.body;
-    if (!data) {
+    if (!data || typeof data !== "object") {
       return res.status(400).json({ error: "Payload data tidak valid" });
     }
 
@@ -128,10 +220,19 @@ app.post("/api/backup/save-latest", (req, res) => {
 
     fs.writeFileSync(AUTO_SYNC_FILE, JSON.stringify(payload, null, 2), "utf-8");
 
+    // Also write a snapshot file every hour or if items exist
+    const dateTag = new Date().toISOString().slice(0, 13); // YYYY-MM-DDTHH
+    const cleanSchool = (payload.schoolName || "Sekolah").replace(/[^a-zA-Z0-9]/g, "_");
+    const snapshotFilename = `Backup_AutoSnapshot_${cleanSchool}_${dateTag}.json`;
+    const snapshotPath = path.join(BACKUPS_DIR, snapshotFilename);
+    if (!fs.existsSync(snapshotPath)) {
+      fs.writeFileSync(snapshotPath, JSON.stringify(payload, null, 2), "utf-8");
+    }
+
     return res.json({
       status: "success",
       timestamp: payload.timestamp,
-      message: "Data berhasil tersimpan di server cloud dan siap direstore di perangkat lain!",
+      message: "Data berhasil tersimpan di server cloud dan siap direstore otomatis!",
     });
   } catch (err: any) {
     console.error("Error saving latest backup snapshot:", err);

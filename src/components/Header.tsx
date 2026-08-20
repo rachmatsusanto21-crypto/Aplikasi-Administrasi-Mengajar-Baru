@@ -8,6 +8,7 @@ import {
   Moon,
   Database,
   Users,
+  RefreshCw,
 } from "lucide-react";
 import { SchoolIdentity, AISettings } from "../types";
 
@@ -20,6 +21,7 @@ interface HeaderProps {
   onOpenSheetsModal: () => void;
   onOpenBackupModal?: () => void;
   onOpenUsersModal?: () => void;
+  onReloadLatestBackup?: () => void;
   onToggleSidebar: () => void;
 }
 
@@ -32,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSheetsModal,
   onOpenBackupModal,
   onOpenUsersModal,
+  onReloadLatestBackup,
   onToggleSidebar,
 }) => {
   const selectedAgent = aiSettings?.selectedAgent || "gemini-3.6-flash";
@@ -84,10 +87,23 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          {/* Quick Reload Latest Backup Button */}
+          {onReloadLatestBackup && (
+            <button
+              type="button"
+              onClick={onReloadLatestBackup}
+              title="Muat Ulang Data Backup Paling Akhir dari Server / Cloud"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-emerald-50 dark:bg-emerald-950/70 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-900 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 rounded text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden lg:inline">Muat Backup Akhir</span>
+            </button>
+          )}
+
           {/* Real-time Auto-Save Status Indicator */}
           <div
             title="Sistem Auto-Save Aktif: Setiap input nilai, absen, modul ajar, dan perubahan data langsung tersimpan otomatis secara real-time"
-            className="hidden xl:flex items-center gap-1.5 px-2 py-1 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 rounded text-[11px] font-bold text-emerald-800 dark:text-emerald-300 select-none"
+            className="hidden xl:flex items-center gap-1.5 px-2 py-1 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-semibold text-slate-700 dark:text-slate-300 select-none"
           >
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span>Auto-Save Aktif</span>
