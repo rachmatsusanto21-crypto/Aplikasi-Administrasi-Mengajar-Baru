@@ -160,6 +160,92 @@ export const ExamGeneratorView: React.FC<ExamGeneratorViewProps> = ({
     }
   };
 
+  // Helper for cognitive levels based on latest Taxonomy (Pusmendik / Bloom Revisi Anderson & Krathwohl)
+  const getCognitiveLevelInfo = (levelStr?: string) => {
+    const str = (levelStr || "").toUpperCase();
+    if (
+      str.includes("L3") ||
+      str.includes("C4") ||
+      str.includes("C5") ||
+      str.includes("C6") ||
+      str.includes("HOTS") ||
+      str.includes("PENALARAN") ||
+      str.includes("ANALISIS") ||
+      str.includes("EVALUASI") ||
+      str.includes("MENCIPTA")
+    ) {
+      let subLevel = "C4 (Menganalisis)";
+      if (str.includes("C5") || str.includes("EVALUASI")) subLevel = "C5 (Mengevaluasi)";
+      else if (str.includes("C6") || str.includes("MENCIPTA") || str.includes("KREASI")) subLevel = "C6 (Mencipta)";
+
+      return {
+        level: "L3",
+        category: "Penalaran (HOTS)",
+        subLevel,
+        badgeText: levelStr || `L3 - ${subLevel}`,
+        badgeClass: "bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border-rose-300 dark:border-rose-800",
+        indicatorClass: "bg-rose-500",
+      };
+    }
+
+    if (
+      str.includes("L2") ||
+      str.includes("C3") ||
+      str.includes("APLIKASI") ||
+      str.includes("PENERAPAN") ||
+      str.includes("MENERAPKAN")
+    ) {
+      return {
+        level: "L2",
+        category: "Aplikasi / Penerapan",
+        subLevel: "C3 (Menerapkan)",
+        badgeText: levelStr || "L2 - C3 (Menerapkan)",
+        badgeClass: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
+        indicatorClass: "bg-emerald-500",
+      };
+    }
+
+    // Default to L1
+    let subLevel = "C2 (Memahami)";
+    if (str.includes("C1") || str.includes("MENGINGAT") || str.includes("MENGETAHUI")) subLevel = "C1 (Mengingat)";
+    return {
+      level: "L1",
+      category: "Pengetahuan & Pemahaman",
+      subLevel,
+      badgeText: levelStr || `L1 - ${subLevel}`,
+      badgeClass: "bg-sky-100 text-sky-800 dark:bg-sky-950/80 dark:text-sky-300 border-sky-300 dark:border-sky-800",
+      indicatorClass: "bg-sky-500",
+    };
+  };
+
+  // Calculate Cognitive Level Distribution
+  const cognitiveStats = useMemo(() => {
+    if (!currentExam || !currentExam.kisiKisi || currentExam.kisiKisi.length === 0) {
+      return { l1: 0, l2: 0, l3: 0, total: 0, l1Pct: 0, l2Pct: 0, l3Pct: 0 };
+    }
+    const total = currentExam.kisiKisi.length;
+    let l1 = 0;
+    let l2 = 0;
+    let l3 = 0;
+
+    currentExam.kisiKisi.forEach((k) => {
+      const info = getCognitiveLevelInfo(k.levelKognitif || k.tingkatKesulitan);
+      if (info.level === "L1") l1++;
+      else if (info.level === "L2") l2++;
+      else l3++;
+    });
+
+    return {
+      l1,
+      l2,
+      l3,
+      total,
+      l1Pct: Math.round((l1 / total) * 100),
+      l2Pct: Math.round((l2 / total) * 100),
+      l3Pct: Math.round((l3 / total) * 100),
+    };
+  }, [currentExam]);
+
   // Question specs based on exam type
   const getQuestionCountSpec = (type: ExamType) => {
     if (type === "Ulangan Akhir Bab") {
@@ -180,7 +266,7 @@ export const ExamGeneratorView: React.FC<ExamGeneratorViewProps> = ({
     const activeMateri = materiList.length > 0 ? materiList : [`Materi Pokok Utama ${selectedSubject}`];
 
     const prompt = `
-Anda adalah seorang Pakar Penyusun Soal Asesmen Sekolah Dasar (SD) Kurikulum Merdeka berstandar Nasional.
+Anda adalah seorang Pakar Penyusun Soal Asesmen Sekolah Dasar (SD) Kurikulum Merdeka berstandar Nasional Kemendikbudristek & Pusmendik.
 Buatkan Paket Naskah Soal dan Kisi-Kisi Asesmen dengan spesifikasi ketat berikut:
 
 SPESIFIKASI DOKUMEN:
@@ -199,6 +285,13 @@ Total Soal = ${specs.total} Soal
 2. Isian Pendek = EXACTLY ${specs.isian} Soal (Nomor ${specs.pg + 1} sampai ${specs.pg + specs.isian})
 3. Uraian / Essay = EXACTLY ${specs.uraian} Soal (Nomor ${specs.pg + specs.isian + 1} sampai ${specs.total})
 
+KETENTUAN LEVEL KOGNITIF (TAKSONOMI KOGNITIF TERBARU - PUSMENDIK / BLOOM REVISI):
+Wajib mengisi "levelKognitif" pada setiap butir kisi-kisi dengan salah satu format standar berikut:
+1. Level 1 (L1 - Pengetahuan & Pemahaman): "L1 - C1 (Mengingat)" atau "L1 - C2 (Memahami)" -> untuk mengidentifikasi fakta, mendefinisikan, mengelompokkan, dan menjelaskan konsep dasar.
+2. Level 2 (L2 - Aplikasi/Penerapan): "L2 - C3 (Menerapkan)" -> untuk melakukan prosedur, menghitung, mendemonstrasikan, mengimplementasikan konsep dalam konteks nyata.
+3. Level 3 (L3 - Penalaran / HOTS): "L3 - C4 (Menganalisis)", "L3 - C5 (Mengevaluasi)", atau "L3 - C6 (Mencipta)" -> untuk berpikir kritis, menelaah data/grafik/stimulus kontekstual, menarik simpulan, memvalidasi solusi, dan merumuskan ide kreatif.
+* Target distribusi: L1 (~25-30%), L2 (~45-50%), L3 HOTS (~20-25%).
+
 PETUNJUK OUTPUT JSON:
 Kembalikan HANYA format JSON murni tanpa markdown triple backticks (tanpa \`\`\`json) dengan skema persis sebagai berikut:
 
@@ -210,10 +303,10 @@ Kembalikan HANYA format JSON murni tanpa markdown triple backticks (tanpa \`\`\`
       "tpCode": "${activeTPs[0]?.code || "TP 1"}",
       "tpDescription": "${activeTPs[0]?.desc || "Memahami materi"}",
       "materiPokok": "${activeMateri[0] || "Materi Utama"}",
-      "indikatorSoal": "Disajikan ilustrasi, siswa dapat menentukan...",
+      "indikatorSoal": "Disajikan stimulus kasus, peserta didik dapat menentukan...",
       "bentukSoal": "Pilihan Ganda",
       "nomorSoal": "1",
-      "tingkatKesulitan": "L1 (Mudah)"
+      "levelKognitif": "L1 - C2 (Memahami)"
     }
   ],
   "questions": [
@@ -266,6 +359,32 @@ CATATAN PENTING:
 
       const parsed = JSON.parse(rawText);
 
+      // Normalize kisiKisi items to ensure proper levelKognitif
+      const rawKisi = Array.isArray(parsed.kisiKisi) ? parsed.kisiKisi : [];
+      const normalizedKisi: ExamKisiKisi[] = rawKisi.map((k: any, idx: number) => {
+        const lvl =
+          k.levelKognitif ||
+          k.tingkatKesulitan ||
+          (idx % 4 === 0
+            ? "L3 - C4 (Menganalisis)"
+            : idx % 3 === 0
+            ? "L2 - C3 (Menerapkan)"
+            : idx % 2 === 0
+            ? "L1 - C2 (Memahami)"
+            : "L1 - C1 (Mengingat)");
+        return {
+          no: k.no || idx + 1,
+          tpCode: k.tpCode || (activeTPs[idx % activeTPs.length]?.code || `TP ${idx + 1}`),
+          tpDescription: k.tpDescription || (activeTPs[idx % activeTPs.length]?.desc || "Memahami materi pembelajaran"),
+          materiPokok: k.materiPokok || (activeMateri[idx % activeMateri.length] || selectedSubject),
+          indikatorSoal: k.indikatorSoal || `Disajikan stimulus masalah, peserta didik dapat menyelesaikan soal nomor ${idx + 1}`,
+          bentukSoal: k.bentukSoal || (idx < specs.pg ? "Pilihan Ganda" : idx < specs.pg + specs.isian ? "Isian Pendek" : "Uraian"),
+          nomorSoal: String(k.nomorSoal || idx + 1),
+          levelKognitif: lvl,
+          tingkatKesulitan: lvl,
+        };
+      });
+
       const newExam: ExamPackage = {
         id: `EXAM-${Date.now()}`,
         title: parsed.title || `NASKAH SOAL ${examType} ${selectedSubject}`,
@@ -276,7 +395,7 @@ CATATAN PENTING:
         selectedTPs: activeTPs,
         timeAllocation,
         examDate,
-        kisiKisi: parsed.kisiKisi || [],
+        kisiKisi: normalizedKisi.length > 0 ? normalizedKisi : [],
         questions: parsed.questions || [],
         createdAt: new Date().toISOString(),
       };
@@ -310,15 +429,25 @@ CATATAN PENTING:
         const tpObj = activeTPs[(i - 1) % activeTPs.length];
         const mat = activeMateri[(i - 1) % activeMateri.length];
 
+        const cogLevelFallback =
+          i % 4 === 0
+            ? "L3 - C4 (Menganalisis)"
+            : i % 3 === 0
+            ? "L2 - C3 (Menerapkan)"
+            : i % 2 === 0
+            ? "L1 - C2 (Memahami)"
+            : "L1 - C1 (Mengingat)";
+
         mockKisi.push({
           no: i,
           tpCode: tpObj.code,
           tpDescription: tpObj.desc,
           materiPokok: mat,
-          indikatorSoal: `Disajikan masalah seputar ${mat}, siswa dapat menjawab soal nomor ${i} dengan tepat.`,
+          indikatorSoal: `Disajikan stimulus kontekstual mengenai ${mat}, peserta didik dapat menjawab soal nomor ${i} dengan tepat.`,
           bentukSoal: bentukStr,
           nomorSoal: `${i}`,
-          tingkatKesulitan: i % 3 === 0 ? "L3 (HOTS)" : i % 2 === 0 ? "L2 (Sedang)" : "L1 (Mudah)",
+          levelKognitif: cogLevelFallback,
+          tingkatKesulitan: cogLevelFallback,
         });
 
         if (jenis === "PG") {
@@ -535,6 +664,112 @@ CATATAN PENTING:
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+    );
+  };
+
+  // Handle Print Kisi-Kisi Action
+  const handlePrintKisiKisi = () => {
+    if (!currentExam) return;
+    onOpenPrint(
+      `KISI-KISI SOAL ${currentExam.examType.toUpperCase()} - ${currentExam.subject.toUpperCase()}`,
+      `Mata Pelajaran: ${currentExam.subject} | ${currentExam.gradeClass}`,
+      <div className="space-y-6 text-slate-900 font-sans p-2">
+        <KopSurat schoolIdentity={schoolIdentity} />
+
+        <div className="text-center font-bold uppercase space-y-1 my-4 border-b pb-3 border-slate-400">
+          <h2 className="text-base sm:text-lg underline tracking-wide">
+            KISI-KISI PENULISAN SOAL {currentExam.examType.toUpperCase()}
+          </h2>
+          <p className="text-xs text-slate-700">
+            TAHUN PELAJARAN {schoolIdentity.academicYear || "2026/2027"} - SEMESTER {schoolIdentity.semester || "GANJIL"}
+          </p>
+        </div>
+
+        {/* Identity Table Header for Kisi-Kisi Sheet */}
+        <table className="w-full text-xs border-collapse border border-slate-400 my-4">
+          <tbody>
+            <tr>
+              <td className="p-2 border border-slate-400 font-bold bg-slate-100 w-1/6">Satuan Pendidikan</td>
+              <td className="p-2 border border-slate-400 w-2/6">{schoolIdentity.schoolName}</td>
+              <td className="p-2 border border-slate-400 font-bold bg-slate-100 w-1/6">Mata Pelajaran</td>
+              <td className="p-2 border border-slate-400 w-2/6">{currentExam.subject}</td>
+            </tr>
+            <tr>
+              <td className="p-2 border border-slate-400 font-bold bg-slate-100">Kelas / Fase</td>
+              <td className="p-2 border border-slate-400">{currentExam.gradeClass}</td>
+              <td className="p-2 border border-slate-400 font-bold bg-slate-100">Alokasi Waktu</td>
+              <td className="p-2 border border-slate-400">{currentExam.timeAllocation}</td>
+            </tr>
+            <tr>
+              <td className="p-2 border border-slate-400 font-bold bg-slate-100">Bentuk Soal</td>
+              <td className="p-2 border border-slate-400">Pilihan Ganda, Isian Pendek, Uraian</td>
+              <td className="p-2 border border-slate-400 font-bold bg-slate-100">Jumlah Soal</td>
+              <td className="p-2 border border-slate-400">{currentExam.kisiKisi.length} Butir Soal</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* Tabel Kisi-Kisi */}
+        <table className="w-full text-[11px] border-collapse border border-slate-400">
+          <thead>
+            <tr className="bg-slate-200 text-slate-900 font-bold text-center">
+              <th className="p-2 border border-slate-400 w-8">No</th>
+              <th className="p-2 border border-slate-400 text-left">Tujuan Pembelajaran (TP)</th>
+              <th className="p-2 border border-slate-400 text-left w-32">Materi Pokok</th>
+              <th className="p-2 border border-slate-400 text-left">Indikator Soal</th>
+              <th className="p-2 border border-slate-400 w-28">Level Kognitif</th>
+              <th className="p-2 border border-slate-400 w-24">Bentuk Soal</th>
+              <th className="p-2 border border-slate-400 w-12">No.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {currentExam.kisiKisi.map((k) => {
+              const cogInfo = getCognitiveLevelInfo(k.levelKognitif || k.tingkatKesulitan);
+              return (
+                <tr key={k.no} className="align-top">
+                  <td className="p-2 border border-slate-400 text-center font-bold">{k.no}</td>
+                  <td className="p-2 border border-slate-400">
+                    <span className="font-bold text-slate-800">[{k.tpCode}]</span> {k.tpDescription}
+                  </td>
+                  <td className="p-2 border border-slate-400">{k.materiPokok}</td>
+                  <td className="p-2 border border-slate-400 italic">{k.indikatorSoal}</td>
+                  <td className="p-2 border border-slate-400 text-center font-semibold">{cogInfo.badgeText}</td>
+                  <td className="p-2 border border-slate-400 text-center">{k.bentukSoal}</td>
+                  <td className="p-2 border border-slate-400 text-center font-bold">{k.nomorSoal}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Ringkasan Distribusi Level Kognitif */}
+        <div className="p-3 bg-slate-50 border border-slate-300 rounded text-xs space-y-1">
+          <p className="font-bold uppercase text-slate-900">DISTRIBUSI LEVEL KOGNITIF (TAKSONOMI KOGNITIF TERBARU):</p>
+          <div className="grid grid-cols-3 gap-2 pt-1 text-slate-800">
+            <div>• <b>L1 (Pengetahuan & Pemahaman - C1/C2):</b> {cognitiveStats.l1} Soal ({cognitiveStats.l1Pct}%)</div>
+            <div>• <b>L2 (Aplikasi/Penerapan - C3):</b> {cognitiveStats.l2} Soal ({cognitiveStats.l2Pct}%)</div>
+            <div>• <b>L3 (Penalaran / HOTS - C4/C5/C6):</b> {cognitiveStats.l3} Soal ({cognitiveStats.l3Pct}%)</div>
+          </div>
+        </div>
+
+        {/* Signatures */}
+        <div className="grid grid-cols-2 gap-4 text-xs pt-8 text-center">
+          <div>
+            <p>Mengetahui,</p>
+            <p>Kepala Sekolah</p>
+            <div className="h-16"></div>
+            <p className="font-bold underline uppercase">{schoolIdentity.headmasterName || "...................................."}</p>
+            <p>NIP. {schoolIdentity.headmasterNip || "...................................."}</p>
+          </div>
+          <div>
+            <p>{schoolIdentity.village || "Malang"}, {currentExam.examDate || new Date().toLocaleDateString("id-ID")}</p>
+            <p>Guru Kelas / Guru Mapel</p>
+            <div className="h-16"></div>
+            <p className="font-bold underline uppercase">{schoolIdentity.teacherName || "...................................."}</p>
+            <p>NIP. {schoolIdentity.teacherNip || "...................................."}</p>
+          </div>
         </div>
       </div>
     );
@@ -897,30 +1132,90 @@ CATATAN PENTING:
                     title={`KISI-KISI SOAL ${currentExam.examType.toUpperCase()} ${currentExam.subject.toUpperCase()}`}
                     filename={`Kisi_Kisi_${currentExam.examType.replace(/[^a-zA-Z0-9]/g, "_")}_${currentExam.subject}`}
                     schoolIdentity={schoolIdentity}
-                    headers={["No", "Tujuan Pembelajaran (TP)", "Materi Pokok", "Indikator Soal", "Bentuk Soal", "No. Soal", "Tingkat Kesulitan"]}
+                    headers={["No", "Tujuan Pembelajaran (TP)", "Materi Pokok", "Indikator Soal", "Level Kognitif", "Bentuk Soal", "No. Soal"]}
                     rows={currentExam.kisiKisi.map((k) => [
                       k.no,
                       `[${k.tpCode}] ${k.tpDescription}`,
                       k.materiPokok,
                       k.indikatorSoal,
+                      k.levelKognitif || k.tingkatKesulitan || "L2 - C3 (Menerapkan)",
                       k.bentukSoal,
                       k.nomorSoal,
-                      k.tingkatKesulitan,
                     ])}
-                    onOpenPrintModal={handlePrintExam}
+                    onOpenPrintModal={handlePrintKisiKisi}
                     showUpload={false}
                   />
 
-                  {/* Header Box Info */}
-                  <div className="p-3 bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-xs space-y-1 text-slate-800 dark:text-slate-200">
-                    <div className="font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wide">
-                      KISI-KISI PENULISAN SOAL {currentExam.examType}
+                  {/* Header Box Info & Cognitive Distribution Cards */}
+                  <div className="p-3.5 bg-gradient-to-r from-amber-50 to-orange-50/60 dark:from-amber-950/40 dark:to-slate-900 border border-amber-200 dark:border-amber-800/80 rounded-xl space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 dark:border-amber-800/60 pb-2 text-xs">
+                      <div className="font-extrabold text-amber-950 dark:text-amber-200 uppercase tracking-wide flex items-center gap-1.5">
+                        <Table className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                        KISI-KISI PENULISAN SOAL {currentExam.examType}
+                      </div>
+                      <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                        Total Soal: <span className="text-amber-700 dark:text-amber-300 font-extrabold">{currentExam.kisiKisi.length} Butir</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-semibold text-slate-700 dark:text-slate-300 pt-1">
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
                       <div>Mata Pelajaran: <span className="font-bold text-slate-900 dark:text-slate-100">{currentExam.subject}</span></div>
                       <div>Kelas/Fase: <span className="font-bold text-slate-900 dark:text-slate-100">{currentExam.gradeClass}</span></div>
                       <div>Alokasi Waktu: <span className="font-bold text-slate-900 dark:text-slate-100">{currentExam.timeAllocation}</span></div>
-                      <div>Total Soal: <span className="font-bold text-slate-900 dark:text-slate-100">{currentExam.kisiKisi.length} Soal</span></div>
+                      <div>Tanggal: <span className="font-bold text-slate-900 dark:text-slate-100">{currentExam.examDate}</span></div>
+                    </div>
+
+                    {/* Cognitive Distribution Breakdown Cards */}
+                    <div className="pt-1">
+                      <div className="text-[10px] font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5 flex items-center gap-1">
+                        <span>Distribusi Level Kognitif (Taksonomi Bloom / Pusmendik):</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {/* L1 Card */}
+                        <div className="p-2 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/80 rounded-lg flex items-center justify-between">
+                          <div>
+                            <div className="text-[10px] font-bold text-sky-900 dark:text-sky-300 flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-sky-500"></span>
+                              L1: Pemahaman (C1/C2)
+                            </div>
+                            <div className="text-[9px] text-sky-700 dark:text-sky-400">Mengingat & Memahami</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-black text-sky-900 dark:text-sky-200">{cognitiveStats.l1} Soal</div>
+                            <div className="text-[10px] font-extrabold text-sky-600 dark:text-sky-400">{cognitiveStats.l1Pct}%</div>
+                          </div>
+                        </div>
+
+                        {/* L2 Card */}
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/80 rounded-lg flex items-center justify-between">
+                          <div>
+                            <div className="text-[10px] font-bold text-emerald-900 dark:text-emerald-300 flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                              L2: Aplikasi (C3)
+                            </div>
+                            <div className="text-[9px] text-emerald-700 dark:text-emerald-400">Penerapan Konsep</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-black text-emerald-900 dark:text-emerald-200">{cognitiveStats.l2} Soal</div>
+                            <div className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">{cognitiveStats.l2Pct}%</div>
+                          </div>
+                        </div>
+
+                        {/* L3 Card */}
+                        <div className="p-2 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 rounded-lg flex items-center justify-between">
+                          <div>
+                            <div className="text-[10px] font-bold text-rose-900 dark:text-rose-300 flex items-center gap-1">
+                              <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                              L3: Penalaran / HOTS (C4-C6)
+                            </div>
+                            <div className="text-[9px] text-rose-700 dark:text-rose-400">Analisis & Evaluasi</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-black text-rose-900 dark:text-rose-200">{cognitiveStats.l3} Soal</div>
+                            <div className="text-[10px] font-extrabold text-rose-600 dark:text-rose-400">{cognitiveStats.l3Pct}%</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -929,42 +1224,52 @@ CATATAN PENTING:
                     <table className="w-full text-xs text-left border-collapse">
                       <thead className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 uppercase font-bold text-[10px]">
                         <tr>
-                          <th className="p-2 border-b border-r border-slate-200 dark:border-slate-700 text-center w-10">No</th>
-                          <th className="p-2 border-b border-r border-slate-200 dark:border-slate-700 min-w-[180px]">Tujuan Pembelajaran (TP)</th>
-                          <th className="p-2 border-b border-r border-slate-200 dark:border-slate-700 min-w-[130px]">Materi Pokok</th>
-                          <th className="p-2 border-b border-r border-slate-200 dark:border-slate-700 min-w-[200px]">Indikator Soal</th>
-                          <th className="p-2 border-b border-r border-slate-200 dark:border-slate-700 text-center w-28">Bentuk</th>
-                          <th className="p-2 border-b border-r border-slate-200 dark:border-slate-700 text-center w-14">No.</th>
-                          <th className="p-2 border-b border-slate-200 dark:border-slate-700 text-center w-24">Tingkat</th>
+                          <th className="p-2.5 border-b border-r border-slate-200 dark:border-slate-700 text-center w-10">No</th>
+                          <th className="p-2.5 border-b border-r border-slate-200 dark:border-slate-700 min-w-[180px]">Tujuan Pembelajaran (TP)</th>
+                          <th className="p-2.5 border-b border-r border-slate-200 dark:border-slate-700 min-w-[130px]">Materi Pokok</th>
+                          <th className="p-2.5 border-b border-r border-slate-200 dark:border-slate-700 min-w-[200px]">Indikator Soal</th>
+                          <th className="p-2.5 border-b border-r border-slate-200 dark:border-slate-700 text-center min-w-[140px]">Level Kognitif</th>
+                          <th className="p-2.5 border-b border-r border-slate-200 dark:border-slate-700 text-center w-28">Bentuk</th>
+                          <th className="p-2.5 border-b border-slate-200 dark:border-slate-700 text-center w-14">No.</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-800 dark:text-slate-200">
-                        {currentExam.kisiKisi.map((k) => (
-                          <tr key={k.no} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                            <td className="p-2 border-r border-slate-200 dark:border-slate-800 text-center font-bold">{k.no}</td>
-                            <td className="p-2 border-r border-slate-200 dark:border-slate-800 font-medium">
-                              <span className="font-mono text-amber-700 dark:text-amber-400 font-bold block text-[10px]">{k.tpCode}</span>
-                              {k.tpDescription}
-                            </td>
-                            <td className="p-2 border-r border-slate-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-300">{k.materiPokok}</td>
-                            <td className="p-2 border-r border-slate-200 dark:border-slate-800 italic">{k.indikatorSoal}</td>
-                            <td className="p-2 border-r border-slate-200 dark:border-slate-800 text-center font-semibold">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                                  k.bentukSoal === "Pilihan Ganda"
-                                    ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
-                                    : k.bentukSoal === "Isian Pendek"
-                                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                    : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
-                                }`}
-                              >
-                                {k.bentukSoal}
-                              </span>
-                            </td>
-                            <td className="p-2 border-r border-slate-200 dark:border-slate-800 text-center font-mono font-extrabold">{k.nomorSoal}</td>
-                            <td className="p-2 text-center text-[10px] font-bold text-slate-600 dark:text-slate-400">{k.tingkatKesulitan}</td>
-                          </tr>
-                        ))}
+                        {currentExam.kisiKisi.map((k) => {
+                          const cogInfo = getCognitiveLevelInfo(k.levelKognitif || k.tingkatKesulitan);
+                          return (
+                            <tr key={k.no} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <td className="p-2 border-r border-slate-200 dark:border-slate-800 text-center font-bold">{k.no}</td>
+                              <td className="p-2 border-r border-slate-200 dark:border-slate-800 font-medium">
+                                <span className="font-mono text-amber-700 dark:text-amber-400 font-bold block text-[10px]">{k.tpCode}</span>
+                                {k.tpDescription}
+                              </td>
+                              <td className="p-2 border-r border-slate-200 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-300">{k.materiPokok}</td>
+                              <td className="p-2 border-r border-slate-200 dark:border-slate-800 italic">{k.indikatorSoal}</td>
+                              <td className="p-2 border-r border-slate-200 dark:border-slate-800 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${cogInfo.badgeClass}`}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${cogInfo.indicatorClass}`}></span>
+                                  {cogInfo.badgeText}
+                                </span>
+                              </td>
+                              <td className="p-2 border-r border-slate-200 dark:border-slate-800 text-center font-semibold">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                                    k.bentukSoal === "Pilihan Ganda"
+                                      ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300"
+                                      : k.bentukSoal === "Isian Pendek"
+                                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                      : "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300"
+                                  }`}
+                                >
+                                  {k.bentukSoal}
+                                </span>
+                              </td>
+                              <td className="p-2 text-center font-mono font-extrabold">{k.nomorSoal}</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

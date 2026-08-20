@@ -490,7 +490,8 @@ export interface ExamKisiKisi {
   indikatorSoal: string;
   bentukSoal: "Pilihan Ganda" | "Isian Pendek" | "Uraian";
   nomorSoal: string;
-  tingkatKesulitan: "L1 (Mudah)" | "L2 (Sedang)" | "L3 (HOTS/Sukar)" | string;
+  levelKognitif: string; // e.g. "L1 - C1 (Mengingat)", "L1 - C2 (Memahami)", "L2 - C3 (Menerapkan)", "L3 - C4 (Menganalisis)", "L3 - C5 (Mengevaluasi)", "L3 - C6 (Mencipta)"
+  tingkatKesulitan?: string; // Optional for backwards-compatibility
 }
 
 export interface ExamQuestion {
