@@ -28,6 +28,8 @@ import { generateAIContent } from "../../lib/aiHelper";
 import { KopSurat } from "../KopSurat";
 import { exportTableToExcelFormat } from "../../lib/exportExcel";
 import { STORAGE_KEYS, loadStoredData, saveStoredData } from "../../lib/storage";
+import { LkpdExportModal } from "../LkpdExportModal";
+import { FileDown } from "lucide-react";
 
 interface LkpdGeneratorViewProps {
   cptpList?: CPTPItem[];
@@ -60,6 +62,8 @@ export const LkpdGeneratorView: React.FC<LkpdGeneratorViewProps> = ({
   // Loading & Result States
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [activeLkpd, setActiveLkpd] = useState<LkpdPackage | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+  const [exportTargetLkpd, setExportTargetLkpd] = useState<LkpdPackage | null>(null);
   const [savedLkpdHistory, setSavedLkpdHistory] = useState<LkpdPackage[]>(() =>
     loadStoredData<LkpdPackage[]>(STORAGE_KEYS.LKPD_HISTORY, [])
   );
@@ -573,26 +577,30 @@ Hasilkan keluaran JSON valid dengan struktur:
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => handleSaveActiveLkpd()}
-                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Save className="w-4 h-4" />
                       <span>Simpan LKPD</span>
                     </button>
 
                     <button
-                      onClick={handlePrintLkpd}
-                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                      onClick={() => {
+                        setExportTargetLkpd(activeLkpd);
+                        setIsExportModalOpen(true);
+                      }}
+                      className="px-3.5 py-2 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                      title="Buka Pusat Ekspor & Cetak LKPD (Word, Excel, Template Guru)"
                     >
-                      <Printer className="w-4 h-4" />
-                      <span>Cetak / PDF</span>
+                      <FileDown className="w-4 h-4" />
+                      <span>Ekspor & Cetak Lengkap</span>
                     </button>
 
                     <button
-                      onClick={handleExportLkpdExcel}
-                      className="px-3.5 py-2 bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
+                      onClick={handlePrintLkpd}
+                      className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-extrabold text-xs rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
-                      <Download className="w-4 h-4" />
-                      <span>Excel</span>
+                      <Printer className="w-4 h-4" />
+                      <span>Cetak Cepat</span>
                     </button>
                   </div>
                 </div>
@@ -745,7 +753,7 @@ Hasilkan keluaran JSON valid dengan struktur:
                           setActiveLkpd(item);
                           setActiveTab("generator");
                         }}
-                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl flex items-center gap-1"
+                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs rounded-xl flex items-center gap-1 cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
                         <span>Pratinjau</span>
@@ -753,8 +761,18 @@ Hasilkan keluaran JSON valid dengan struktur:
 
                       <div className="flex items-center gap-1.5">
                         <button
+                          onClick={() => {
+                            setExportTargetLkpd(item);
+                            setIsExportModalOpen(true);
+                          }}
+                          className="p-1.5 bg-teal-50 hover:bg-teal-100 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 rounded-lg cursor-pointer transition-all"
+                          title="Ekspor & Cetak LKPD"
+                        >
+                          <FileDown className="w-4 h-4" />
+                        </button>
+                        <button
                           onClick={() => handleDeleteLkpdFromHistory(item.id)}
-                          className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-all"
+                          className="p-1.5 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-all cursor-pointer"
                           title="Hapus dari Riwayat"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -766,6 +784,20 @@ Hasilkan keluaran JSON valid dengan struktur:
             </div>
           )}
         </div>
+      )}
+
+      {/* LKPD Export Modal */}
+      {isExportModalOpen && exportTargetLkpd && (
+        <LkpdExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => {
+            setIsExportModalOpen(false);
+            setExportTargetLkpd(null);
+          }}
+          lkpd={exportTargetLkpd}
+          schoolIdentity={schoolIdentity}
+          onOpenPrintModal={handlePrintLkpd}
+        />
       )}
     </div>
   );

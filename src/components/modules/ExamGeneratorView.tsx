@@ -12,6 +12,7 @@ import {
 } from "../../types";
 import { KopSurat } from "../KopSurat";
 import { ExportActionBar } from "../ExportActionBar";
+import { QuestionExportModal } from "../QuestionExportModal";
 import {
   Sparkles,
   FileText,
@@ -31,6 +32,7 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  FileDown,
 } from "lucide-react";
 
 interface ExamGeneratorViewProps {
@@ -80,6 +82,10 @@ export const ExamGeneratorView: React.FC<ExamGeneratorViewProps> = ({
   
   // Current Generated Exam
   const [currentExam, setCurrentExam] = useState<ExamPackage | null>(null);
+
+  // Export Modal state
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+  const [exportModalExam, setExportModalExam] = useState<ExamPackage | null>(null);
 
   // Available TPs for selected subject
   const availableTPs = useMemo(() => {
@@ -1144,6 +1150,19 @@ CATATAN PENTING:
                     ])}
                     onOpenPrintModal={handlePrintKisiKisi}
                     showUpload={false}
+                    customButtons={
+                      <button
+                        onClick={() => {
+                          setExportModalExam(currentExam);
+                          setIsExportModalOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Buka Pusat Ekspor & Cetak Lengkap (Word, Excel, Template Guru)"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span>Ekspor & Cetak Lengkap</span>
+                      </button>
+                    }
                   />
 
                   {/* Header Box Info & Cognitive Distribution Cards */}
@@ -1302,6 +1321,19 @@ CATATAN PENTING:
                     schoolIdentity={schoolIdentity}
                     onOpenPrintModal={handlePrintExam}
                     showUpload={false}
+                    customButtons={
+                      <button
+                        onClick={() => {
+                          setExportModalExam(currentExam);
+                          setIsExportModalOpen(true);
+                        }}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                        title="Buka Pusat Ekspor & Cetak Lengkap (Word, Excel, Template Guru)"
+                      >
+                        <FileDown className="w-4 h-4" />
+                        <span>Ekspor & Cetak Lengkap</span>
+                      </button>
+                    }
                   />
 
                   {/* PAPER SIMULATION CONTAINER */}
@@ -1491,6 +1523,16 @@ CATATAN PENTING:
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
+                            setExportModalExam(ex);
+                            setIsExportModalOpen(true);
+                          }}
+                          className="p-1.5 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 rounded-lg"
+                          title="Ekspor & Cetak Paket Soal"
+                        >
+                          <FileDown className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
                             setCurrentExam(ex);
                             setActiveTab("soal");
                           }}
@@ -1514,6 +1556,20 @@ CATATAN PENTING:
           )}
         </div>
       </div>
+
+      {/* Question Export Modal */}
+      {isExportModalOpen && exportModalExam && (
+        <QuestionExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => {
+            setIsExportModalOpen(false);
+            setExportModalExam(null);
+          }}
+          exam={exportModalExam}
+          schoolIdentity={schoolIdentity}
+          onOpenPrintModal={handlePrintExam}
+        />
+      )}
     </div>
   );
 };

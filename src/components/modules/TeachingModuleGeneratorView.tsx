@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { TeachingModule, AISettings, SchoolIdentity, Student, ActivityTableRow, RubrikFormatifItem, RubrikSumatifItem, KisiKisiItem, SoalItem, RefleksiItem } from "../../types";
-import { Sparkles, Trash2, Download, Printer, Layers, FileText, CheckCircle2, UserCheck, HelpCircle, Palette, Clock } from "lucide-react";
+import { Sparkles, Trash2, Download, Printer, Layers, FileText, CheckCircle2, UserCheck, HelpCircle, Palette, Clock, FileDown } from "lucide-react";
 import { exportDataToJSON } from "../../lib/storage";
 import { generateAIContent } from "../../lib/aiHelper";
 import { exportHtmlToDoc } from "../../lib/exportDoc";
 import { exportTeachingModuleToDocx } from "../../lib/exportDocx";
 import { KopSurat } from "../KopSurat";
+import { TeachingModuleExportModal } from "../TeachingModuleExportModal";
 
 interface TeachingModuleGeneratorViewProps {
   schoolIdentity: SchoolIdentity;
@@ -693,6 +694,7 @@ export const TeachingModuleGeneratorView: React.FC<TeachingModuleGeneratorViewPr
 
   const activeModule = selectedModule ? ensureModuleStructure(selectedModule) : null;
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Form for AI Generation
@@ -1733,20 +1735,16 @@ C. Gambar / Alat Peraga Kontekstual ${materi}`,
                     <span>Buat LKPD / Media di Canva</span>
                   </button>
                   <button
-                    onClick={() => {
-                      if (activeModule) {
-                        exportTeachingModuleToDocx(activeModule, schoolIdentity);
-                      }
-                    }}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
-                    title="Ekspor Modul Ajar ke Format Native Word (.docx)"
+                    onClick={() => setIsExportModalOpen(true)}
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                    title="Buka Pusat Ekspor & Cetak Lengkap Modul Ajar (Word .docx, .doc, Excel, Template Guru)"
                   >
-                    <FileText className="w-4 h-4 text-blue-100" />
-                    Ekspor Word (.docx)
+                    <FileDown className="w-4 h-4 text-blue-100" />
+                    <span>Ekspor & Cetak Lengkap</span>
                   </button>
                   <button
                     onClick={handlePrint}
-                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5"
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5 cursor-pointer"
                   >
                     <Printer className="w-4 h-4" />
                     Cetak / PDF
@@ -1880,6 +1878,17 @@ C. Gambar / Alat Peraga Kontekstual ${materi}`,
             </div>
           </div>
         </div>
+      )}
+
+      {/* Export & Cetak Lengkap Modal */}
+      {isExportModalOpen && activeModule && (
+        <TeachingModuleExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          module={activeModule}
+          schoolIdentity={schoolIdentity}
+          onOpenPrintModal={handlePrint}
+        />
       )}
     </div>
   );
