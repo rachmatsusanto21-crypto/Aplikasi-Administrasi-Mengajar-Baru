@@ -1,10 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Student, CPTPItem, GradeRecord, DailyGradeEntry, GradeAssessmentType } from "../../types";
-import { GraduationCap, Save, Printer, Download, Calculator, Check, Sparkles, Filter, FileText, Plus, Calendar, BookOpen, PieChart as PieChartIcon, AlertTriangle, Edit2, Trash2 } from "lucide-react";
+import {
+  GraduationCap,
+  Save,
+  Printer,
+  Download,
+  Check,
+  Filter,
+  FileText,
+  Plus,
+  Calendar,
+  BookOpen,
+  PieChart as PieChartIcon,
+  AlertTriangle,
+  Edit2,
+  Trash2,
+  Search,
+  Zap,
+  FileSpreadsheet,
+  ArrowUpDown,
+  Table as TableIcon,
+  HelpCircle,
+} from "lucide-react";
 import { exportToCSV } from "../../lib/storage";
 import { exportHtmlToDoc } from "../../lib/exportDoc";
 import { exportGradesToExcel } from "../../lib/exportExcel";
 import { GradesRemedialDashboard } from "./GradesRemedialDashboard";
+import { ExcelPasteModal } from "../grades/ExcelPasteModal";
+import { QuickFillModal } from "../grades/QuickFillModal";
 
 interface GradesMatrixViewProps {
   students: Student[];
@@ -41,11 +64,25 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
   onOpenPrint,
 }) => {
   const [selectedSubject, setSelectedSubject] = useState<string>(subjects[0] || "Bahasa Indonesia");
-  const [activeTab, setActiveTab] = useState<"remedial_dashboard" | "rekap" | "daily_input" | "matrix_input">("remedial_dashboard");
+  // Default to matrix_input (Tabel Input Nilai) for instant spreadsheet experience!
+  const [activeTab, setActiveTab] = useState<
+    "matrix_input" | "daily_input" | "rekap" | "remedial_dashboard"
+  >("matrix_input");
   const [kkmValue, setKkmValue] = useState<number>(75);
   const [savedAlert, setSavedAlert] = useState(false);
+  const [savedAlertMessage, setSavedAlertMessage] = useState(
+    "Data Nilai berhasil disimpan dan disinkronkan ke Leger Raport!"
+  );
 
-  // Daily grade input modal states
+  // Search & Filter in Table
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState<"all" | "remedial" | "incomplete">("all");
+
+  // Excel paste & quick fill modals
+  const [isExcelModalOpen, setIsExcelModalOpen] = useState(false);
+  const [isQuickFillOpen, setIsQuickFillOpen] = useState(false);
+
+  // Daily grade input inline & modal states
   const [editingDailyGroupKey, setEditingDailyGroupKey] = useState<string | null>(null);
   const [dailyForm, setDailyForm] = useState<{
     date: string;
@@ -65,18 +102,23 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
     if (item.subject === selectedSubject) return true;
     const selNorm = selectedSubject.toLowerCase();
     const itemNorm = (item.subject || "").toLowerCase();
-    if ((selNorm.includes("kokurikuler") || selNorm.includes("p5")) && (itemNorm.includes("kokurikuler") || itemNorm.includes("p5"))) {
+    if (
+      (selNorm.includes("kokurikuler") || selNorm.includes("p5")) &&
+      (itemNorm.includes("kokurikuler") || itemNorm.includes("p5"))
+    ) {
       return true;
     }
     return false;
   });
-  const tpList = subjectTPs.length > 0
-    ? subjectTPs.map((t) => ({ code: t.codeTP, desc: t.descriptionTP }))
-    : [
-        { code: "TP-1", desc: "Mengenal dan memahami konsep dasar" },
-        { code: "TP-2", desc: "Menganalisis dan mengaplikasikan materi" },
-        { code: "TP-3", desc: "Mengevaluasi dan membuat hasil karya" },
-      ];
+
+  const tpList =
+    subjectTPs.length > 0
+      ? subjectTPs.map((t) => ({ code: t.codeTP, desc: t.descriptionTP }))
+      : [
+          { code: "TP-1", desc: "Mengenal dan memahami konsep dasar materi" },
+          { code: "TP-2", desc: "Menganalisis dan mengaplikasikan materi secara mandiri" },
+          { code: "TP-3", desc: "Mengevaluasi dan membuat hasil karya / presentasi" },
+        ];
 
   // Helper to get grade record
   const getGradeRecord = (studentId: string, subject: string): GradeRecord => {
@@ -95,16 +137,26 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
     studentId: string,
     field: "tp" | "mid" | "final",
     tpCode: string | null,
-    val: number
+    val: number | undefined
   ) => {
-    const numVal = Math.min(100, Math.max(0, val || 0));
+    const numVal =
+      val === undefined || isNaN(val)
+        ? undefined
+        : Math.min(100, Math.max(0, val));
+
     const current = getGradeRecord(studentId, selectedSubject);
 
     let updatedRecord: GradeRecord;
     if (field === "tp" && tpCode) {
+      const newTpScores = { ...current.tpScores };
+      if (numVal === undefined) {
+        delete newTpScores[tpCode];
+      } else {
+        newTpScores[tpCode] = numVal;
+      }
       updatedRecord = {
         ...current,
-        tpScores: { ...current.tpScores, [tpCode]: numVal },
+        tpScores: newTpScores,
       };
     } else if (field === "mid") {
       updatedRecord = { ...current, midSummative: numVal };
@@ -122,7 +174,9 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
   const calculateStudentStats = (student: Student) => {
     const record = getGradeRecord(student.id, selectedSubject);
     const tpScoresMap = record.tpScores || {};
-    const entries = Object.entries(tpScoresMap).filter(([_, score]) => typeof score === "number" && !isNaN(score));
+    const entries = Object.entries(tpScoresMap).filter(
+      ([_, score]) => typeof score === "number" && !isNaN(score)
+    );
 
     let tpHighestList: string[] = [];
     let tpLowestList: string[] = [];
@@ -162,8 +216,6 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
       predicateLabel = "Cukup";
     }
 
-    // Generate Competency Description based on User Template
-    // "Ananda (nama) sudah menunjukkan penguasaan yang (sangat baik/baik/cukup baik) dalam (deskripsi TP di atas KKM), dan perlu bimbingan dalam (deskripsi TP di bawah KKM)."
     const getTPDesc = (tpCode: string) => {
       const found = tpList.find((t) => t.code === tpCode);
       return found ? `${tpCode} (${found.desc})` : tpCode;
@@ -183,6 +235,9 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
       competencyDescription = `Ananda ${student.name} masih memerlukan bimbingan dan intervensi khusus dalam ${lowDescs} untuk mencapai KKM (${kkmValue}).`;
     }
 
+    const isRemedial = finalScore < kkmValue && finalScore > 0;
+    const isIncomplete = entries.length < tpList.length || record.midSummative === undefined || record.finalSummative === undefined;
+
     return {
       record,
       avgTP: Math.round(avgTP),
@@ -194,21 +249,346 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
       tpHighest: tpHighestList.join(", ") || "-",
       tpLowest: tpLowestList.join(", ") || "-",
       competencyDescription,
+      isRemedial,
+      isIncomplete,
     };
   };
 
-  const handleOpenNewDailyModal = () => {
-    setEditingDailyGroupKey(null);
-    setDailyForm({
-      date: new Date().toISOString().slice(0, 10),
-      tpCode: "",
-      assessmentType: "Formatif TP",
-      scores: {},
+  // Filtered Students for the Table
+  const filteredStudents = useMemo(() => {
+    return students.filter((student) => {
+      // Search check
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = student.name.toLowerCase().includes(q);
+        const matchNis = (student.nis || "").toLowerCase().includes(q);
+        const matchNisn = (student.nisn || "").toLowerCase().includes(q);
+        if (!matchName && !matchNis && !matchNisn) return false;
+      }
+
+      // Filter status check
+      if (filterStatus === "all") return true;
+      const stats = calculateStudentStats(student);
+      if (filterStatus === "remedial") return stats.isRemedial;
+      if (filterStatus === "incomplete") return stats.isIncomplete;
+
+      return true;
     });
-    setIsDailyModalOpen(true);
+  }, [students, searchQuery, filterStatus, selectedSubject, kkmValue, grades]);
+
+  // Keyboard navigation & cell pasting for Spreadsheet Table
+  // Col indices: 0..(tpList.length-1) for TPs, tpList.length for STS, tpList.length+1 for SAS
+  const totalEditableCols = tpList.length + 2;
+
+  const handleCellKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    rowIdx: number,
+    colIdx: number
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const nextRow = e.shiftKey ? rowIdx - 1 : rowIdx + 1;
+      if (nextRow >= 0 && nextRow < filteredStudents.length) {
+        const nextEl = document.getElementById(`cell_${nextRow}_${colIdx}`) as HTMLInputElement;
+        if (nextEl) {
+          nextEl.focus();
+          nextEl.select();
+        }
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const nextRow = rowIdx + 1;
+      if (nextRow < filteredStudents.length) {
+        const nextEl = document.getElementById(`cell_${nextRow}_${colIdx}`) as HTMLInputElement;
+        if (nextEl) {
+          nextEl.focus();
+          nextEl.select();
+        }
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const nextRow = rowIdx - 1;
+      if (nextRow >= 0) {
+        const nextEl = document.getElementById(`cell_${nextRow}_${colIdx}`) as HTMLInputElement;
+        if (nextEl) {
+          nextEl.focus();
+          nextEl.select();
+        }
+      }
+    }
   };
 
-  const handleOpenEditDailyGroup = (tpCode: string, dateStr: string, type: string) => {
+  const handleCellPaste = (
+    e: React.ClipboardEvent<HTMLInputElement>,
+    startStudentIdx: number,
+    startColIdx: number
+  ) => {
+    const pasteText = e.clipboardData.getData("text");
+    if (!pasteText || (!pasteText.includes("\t") && !pasteText.includes("\n"))) {
+      // Single value paste, let default input handle it
+      return;
+    }
+
+    e.preventDefault();
+    const lines = pasteText
+      .trim()
+      .split(/\r?\n/)
+      .map((row) => row.split(/\t|,/).map((c) => c.trim()));
+
+    const updatedGrades = [...grades];
+    let count = 0;
+
+    lines.forEach((rowCells, rOffset) => {
+      const targetStudentIdx = startStudentIdx + rOffset;
+      if (targetStudentIdx >= filteredStudents.length) return;
+      const targetStudent = filteredStudents[targetStudentIdx];
+
+      let record = updatedGrades.find(
+        (g) => g.studentId === targetStudent.id && g.subject === selectedSubject
+      );
+      if (!record) {
+        record = {
+          studentId: targetStudent.id,
+          subject: selectedSubject,
+          tpScores: {},
+        };
+        updatedGrades.push(record);
+      }
+
+      rowCells.forEach((cellVal, cOffset) => {
+        const targetColIdx = startColIdx + cOffset;
+        if (targetColIdx >= totalEditableCols) return;
+
+        const num = parseFloat(cellVal.replace(",", "."));
+        if (isNaN(num)) return;
+        const clampedScore = Math.min(100, Math.max(0, Math.round(num)));
+
+        if (targetColIdx < tpList.length) {
+          const tpCode = tpList[targetColIdx].code;
+          record.tpScores = { ...record.tpScores, [tpCode]: clampedScore };
+          count++;
+        } else if (targetColIdx === tpList.length) {
+          record.midSummative = clampedScore;
+          count++;
+        } else if (targetColIdx === tpList.length + 1) {
+          record.finalSummative = clampedScore;
+          count++;
+        }
+      });
+    });
+
+    if (count > 0) {
+      onSaveGrades(updatedGrades);
+      setSavedAlertMessage(`✅ Berhasil menempelkan ${count} nilai dari Excel ke tabel!`);
+      setSavedAlert(true);
+      setTimeout(() => setSavedAlert(false), 3500);
+    }
+  };
+
+  // Quick fill and Excel paste handlers
+  const handleApplyQuickFill = (
+    columnKey: string,
+    actionType: "fixed" | "kkm" | "clear",
+    fixedScore = 85
+  ) => {
+    const updatedGrades = [...grades];
+    students.forEach((s) => {
+      let record = updatedGrades.find(
+        (g) => g.studentId === s.id && g.subject === selectedSubject
+      );
+      if (!record) {
+        record = { studentId: s.id, subject: selectedSubject, tpScores: {} };
+        updatedGrades.push(record);
+      }
+
+      const applyValue = (currentVal: number | undefined): number | undefined => {
+        if (actionType === "clear") return undefined;
+        if (actionType === "kkm") {
+          return currentVal === undefined || currentVal === 0 ? kkmValue : currentVal;
+        }
+        return fixedScore;
+      };
+
+      if (columnKey === "all_tps") {
+        tpList.forEach((tp) => {
+          const val = applyValue(record.tpScores[tp.code]);
+          if (val === undefined) {
+            delete record.tpScores[tp.code];
+          } else {
+            record.tpScores[tp.code] = val;
+          }
+        });
+      } else if (columnKey === "mid") {
+        record.midSummative = applyValue(record.midSummative);
+      } else if (columnKey === "final") {
+        record.finalSummative = applyValue(record.finalSummative);
+      } else {
+        const val = applyValue(record.tpScores[columnKey]);
+        if (val === undefined) {
+          delete record.tpScores[columnKey];
+        } else {
+          record.tpScores[columnKey] = val;
+        }
+      }
+    });
+
+    onSaveGrades(updatedGrades);
+    setSavedAlertMessage("✅ Aksi cepat berhasil diterapkan ke tabel!");
+    setSavedAlert(true);
+    setTimeout(() => setSavedAlert(false), 3000);
+  };
+
+  const handleApplyExcelGrades = (
+    updates: { studentId: string; tpCode?: string; field: "tp" | "mid" | "final"; score: number }[]
+  ) => {
+    const updatedGrades = [...grades];
+    updates.forEach((u) => {
+      let record = updatedGrades.find(
+        (g) => g.studentId === u.studentId && g.subject === selectedSubject
+      );
+      if (!record) {
+        record = { studentId: u.studentId, subject: selectedSubject, tpScores: {} };
+        updatedGrades.push(record);
+      }
+
+      if (u.field === "tp" && u.tpCode) {
+        record.tpScores = { ...record.tpScores, [u.tpCode]: u.score };
+      } else if (u.field === "mid") {
+        record.midSummative = u.score;
+      } else if (u.field === "final") {
+        record.finalSummative = u.score;
+      }
+    });
+
+    onSaveGrades(updatedGrades);
+    setSavedAlertMessage(`✅ Berhasil menerapkan ${updates.length} data nilai dari Excel!`);
+    setSavedAlert(true);
+    setTimeout(() => setSavedAlert(false), 3500);
+  };
+
+  // Class Summary Column Stats
+  const columnStats = useMemo(() => {
+    const stats: Record<
+      string,
+      { avg: number; max: number; min: number; passCount: number; passRate: number }
+    > = {};
+
+    const calcCol = (vals: (number | undefined)[]) => {
+      const valid = vals.filter((v): v is number => typeof v === "number" && !isNaN(v));
+      if (valid.length === 0) return { avg: 0, max: 0, min: 0, passCount: 0, passRate: 0 };
+      const avg = Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
+      const max = Math.max(...valid);
+      const min = Math.min(...valid);
+      const passCount = valid.filter((v) => v >= kkmValue).length;
+      const passRate = Math.round((passCount / valid.length) * 100);
+      return { avg, max, min, passCount, passRate };
+    };
+
+    tpList.forEach((t) => {
+      const vals = students.map((s) => getGradeRecord(s.id, selectedSubject).tpScores[t.code]);
+      stats[t.code] = calcCol(vals);
+    });
+
+    stats["mid"] = calcCol(students.map((s) => getGradeRecord(s.id, selectedSubject).midSummative));
+    stats["final"] = calcCol(students.map((s) => getGradeRecord(s.id, selectedSubject).finalSummative));
+    stats["na"] = calcCol(students.map((s) => calculateStudentStats(s).finalScore));
+
+    return stats;
+  }, [students, selectedSubject, grades, kkmValue, tpList]);
+
+  // Inline Daily Grade Handlers (Tab 2)
+  const [selectedDailyTP, setSelectedDailyTP] = useState<string>(tpList[0]?.code || "TP-1");
+  const [dailyAssessmentDate, setDailyAssessmentDate] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
+  const [dailyAssessmentType, setDailyAssessmentType] = useState<GradeAssessmentType>("Formatif TP");
+
+  // Local daily scores state for inline daily table
+  const [inlineDailyScores, setInlineDailyScores] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    students.forEach((s) => {
+      const rec = getGradeRecord(s.id, selectedSubject);
+      if (rec.tpScores[selectedDailyTP] !== undefined) {
+        initial[s.id] = rec.tpScores[selectedDailyTP];
+      }
+    });
+    return initial;
+  });
+
+  const handleSelectDailyTPChange = (newTP: string) => {
+    setSelectedDailyTP(newTP);
+    const newScores: Record<string, number> = {};
+    students.forEach((s) => {
+      const rec = getGradeRecord(s.id, selectedSubject);
+      if (rec.tpScores[newTP] !== undefined) {
+        newScores[s.id] = rec.tpScores[newTP];
+      }
+    });
+    setInlineDailyScores(newScores);
+  };
+
+  const handleSaveInlineDaily = () => {
+    if (!selectedDailyTP) return;
+    const dateObj = new Date(dailyAssessmentDate);
+    const day = dateObj.getDate();
+    const month = dateObj.getMonth() + 1;
+    const formattedDate = isNaN(day) || isNaN(month) ? dailyAssessmentDate : `${day}/${month}`;
+    const tpInfo = tpList.find((t) => t.code === selectedDailyTP);
+    const tpDesc = tpInfo ? tpInfo.desc : "";
+
+    const newEntries: DailyGradeEntry[] = students.map((std) => ({
+      id: "dg_" + Date.now() + "_" + std.id,
+      studentId: std.id,
+      subject: selectedSubject,
+      tpCode: selectedDailyTP,
+      tpDescription: tpDesc,
+      assessmentType: dailyAssessmentType,
+      dateFormatted: formattedDate,
+      score: inlineDailyScores[std.id] ?? 0,
+      date: dailyAssessmentDate,
+      formattedDate,
+    }));
+
+    if (onSaveDailyGrades) {
+      const filtered = dailyGrades.filter(
+        (g) =>
+          !(
+            g.subject === selectedSubject &&
+            g.tpCode === selectedDailyTP &&
+            (g.formattedDate === formattedDate || g.date === dailyAssessmentDate) &&
+            g.assessmentType === dailyAssessmentType
+          )
+      );
+      onSaveDailyGrades([...filtered, ...newEntries]);
+    }
+
+    // Sync to main grade matrix
+    const updatedGrades = [...grades];
+    students.forEach((std) => {
+      const userVal = inlineDailyScores[std.id];
+      if (userVal !== undefined) {
+        const numVal = Math.min(100, Math.max(0, userVal || 0));
+        let record = updatedGrades.find(
+          (g) => g.studentId === std.id && g.subject === selectedSubject
+        );
+        if (!record) {
+          record = { studentId: std.id, subject: selectedSubject, tpScores: {} };
+          updatedGrades.push(record);
+        }
+        record.tpScores = { ...record.tpScores, [selectedDailyTP]: numVal };
+      }
+    });
+
+    onSaveGrades(updatedGrades);
+    setSavedAlertMessage("✅ Penilaian Harian berhasil disimpan dan disinkronkan ke Leger!");
+    setSavedAlert(true);
+    setTimeout(() => setSavedAlert(false), 3000);
+  };
+
+  const handleEditDailyGroupInline = (tpCode: string, dateStr: string, type: string) => {
+    setSelectedDailyTP(tpCode);
+    setDailyAssessmentType(type as GradeAssessmentType);
+
     const groupItems = dailyGrades.filter(
       (g) =>
         g.subject === selectedSubject &&
@@ -222,110 +602,29 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
       scores[g.studentId] = g.score;
     });
 
-    const rawDate = groupItems[0]?.date || new Date().toISOString().slice(0, 10);
-
-    setEditingDailyGroupKey(`${tpCode}_${dateStr}_${type}`);
-    setDailyForm({
-      date: rawDate,
-      tpCode: tpCode,
-      assessmentType: type as GradeAssessmentType,
-      scores,
-    });
-    setIsDailyModalOpen(true);
+    if (groupItems[0]?.date) {
+      setDailyAssessmentDate(groupItems[0].date);
+    }
+    setInlineDailyScores(scores);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDeleteDailyGroup = (tpCode: string, dateStr: string, type: string) => {
     const updatedDaily = dailyGrades.filter(
-        (g) =>
-          !(
-            g.subject === selectedSubject &&
-            g.tpCode === tpCode &&
-            (g.formattedDate === dateStr || g.date === dateStr) &&
-            g.assessmentType === type
-          )
-      );
-
-      if (onSaveDailyGrades) {
-        onSaveDailyGrades(updatedDaily);
-      }
-
-      setSavedAlert(true);
-      setTimeout(() => setSavedAlert(false), 3000);
-  };
-
-  // Handle saving Daily Grades Entry
-  const handleSaveDailyForm = () => {
-    if (!dailyForm.tpCode) return;
-
-    // Convert date string YYYY-MM-DD to dd/m format
-    const dateObj = new Date(dailyForm.date);
-    const day = dateObj.getDate();
-    const month = dateObj.getMonth() + 1;
-    const formattedDate = isNaN(day) || isNaN(month) ? dailyForm.date : `${day}/${month}`;
-
-    const tpInfo = tpList.find((t) => t.code === dailyForm.tpCode);
-    const tpDesc = tpInfo ? tpInfo.desc : "";
-
-    const newEntries: DailyGradeEntry[] = students.map((std) => ({
-      id: "dg_" + Date.now() + "_" + std.id,
-      studentId: std.id,
-      subject: selectedSubject,
-      tpCode: dailyForm.tpCode,
-      tpDescription: tpDesc,
-      assessmentType: dailyForm.assessmentType,
-      score: dailyForm.scores[std.id] ?? 0,
-      date: dailyForm.date,
-      formattedDate,
-    }));
+      (g) =>
+        !(
+          g.subject === selectedSubject &&
+          g.tpCode === tpCode &&
+          (g.formattedDate === dateStr || g.date === dateStr) &&
+          g.assessmentType === type
+        )
+    );
 
     if (onSaveDailyGrades) {
-      if (editingDailyGroupKey) {
-        const [oldTp, oldDate, oldType] = editingDailyGroupKey.split("_");
-        const filtered = dailyGrades.filter(
-          (g) =>
-            !(
-              g.subject === selectedSubject &&
-              g.tpCode === oldTp &&
-              (g.formattedDate === oldDate || g.date === oldDate) &&
-              g.assessmentType === oldType
-            )
-        );
-        onSaveDailyGrades([...filtered, ...newEntries]);
-      } else {
-        onSaveDailyGrades([...dailyGrades, ...newEntries]);
-      }
+      onSaveDailyGrades(updatedDaily);
     }
 
-    // Also update main TP grade records for instant sync across all students!
-    let updatedGrades = [...grades];
-    students.forEach((std) => {
-      const userVal = dailyForm.scores[std.id];
-      if (userVal !== undefined) {
-        const numVal = Math.min(100, Math.max(0, userVal || 0));
-        const existingIdx = updatedGrades.findIndex(
-          (g) => g.studentId === std.id && g.subject === selectedSubject
-        );
-
-        if (existingIdx >= 0) {
-          const existing = updatedGrades[existingIdx];
-          updatedGrades[existingIdx] = {
-            ...existing,
-            tpScores: { ...existing.tpScores, [dailyForm.tpCode]: numVal },
-          };
-        } else {
-          updatedGrades.push({
-            studentId: std.id,
-            subject: selectedSubject,
-            tpScores: { [dailyForm.tpCode]: numVal },
-          });
-        }
-      }
-    });
-
-    onSaveGrades(updatedGrades);
-
-    setIsDailyModalOpen(false);
-    setEditingDailyGroupKey(null);
+    setSavedAlertMessage("Entri penilaian harian berhasil dihapus.");
     setSavedAlert(true);
     setTimeout(() => setSavedAlert(false), 3000);
   };
@@ -457,11 +756,21 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
                         {stats.record.tpScores[t.code] ?? "-"}
                       </td>
                     ))}
-                    <td className="border border-slate-300 p-1.5 text-center font-bold text-emerald-700">{stats.tpHighest}</td>
-                    <td className="border border-slate-300 p-1.5 text-center font-bold text-red-600">{stats.tpLowest}</td>
-                    <td className="border border-slate-300 p-1.5 text-center font-extrabold text-emerald-900 bg-emerald-50/50">{stats.finalScore}</td>
-                    <td className="border border-slate-300 p-1.5 text-center font-bold">{stats.predicate}</td>
-                    <td className="border border-slate-300 p-1.5 text-[10px] leading-tight">{stats.competencyDescription}</td>
+                    <td className="border border-slate-300 p-1.5 text-center font-bold text-emerald-700">
+                      {stats.tpHighest}
+                    </td>
+                    <td className="border border-slate-300 p-1.5 text-center font-bold text-red-600">
+                      {stats.tpLowest}
+                    </td>
+                    <td className="border border-slate-300 p-1.5 text-center font-extrabold text-emerald-900 bg-emerald-50/50">
+                      {stats.finalScore}
+                    </td>
+                    <td className="border border-slate-300 p-1.5 text-center font-bold">
+                      {stats.predicate}
+                    </td>
+                    <td className="border border-slate-300 p-1.5 text-[10px] leading-tight">
+                      {stats.competencyDescription}
+                    </td>
                   </tr>
                 );
               })}
@@ -473,8 +782,8 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Header Banner */}
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
@@ -482,133 +791,784 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
             Rekap Nilai & Leger Raport Kurikulum Merdeka
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Pengolahan nilai TP tertinggi & terendah, KKM, predikat A/B/C/D, serta otomasi Deskripsi Capaian Kompetensi
+            Tabel input nilai terintegrasi (Formatif TP, STS, SAS) dengan navigasi spreadsheet, otomasi nilai akhir (NA), dan predikat.
           </p>
         </div>
 
+        {/* Primary Navigation Tabs */}
         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-semibold flex-wrap gap-1">
           <button
-            onClick={() => setActiveTab("remedial_dashboard")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === "remedial_dashboard"
-                ? "bg-emerald-700 text-white shadow-xs font-bold"
-                : "text-slate-700 hover:text-slate-900 hover:bg-slate-200/60"
-            }`}
-          >
-            <PieChartIcon className="w-3.5 h-3.5 text-emerald-300" />
-            Dashboard Ketuntasan & Remedial
-          </button>
-          <button
-            onClick={() => setActiveTab("rekap")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all ${
-              activeTab === "rekap"
-                ? "bg-white text-emerald-900 shadow-xs font-bold"
+            onClick={() => setActiveTab("matrix_input")}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === "matrix_input"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Leger & Deskripsi Raport
+            <TableIcon className="w-3.5 h-3.5" />
+            <span>Tabel Input Nilai (Formatif & Sumatif)</span>
           </button>
           <button
             onClick={() => setActiveTab("daily_input")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all ${
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === "daily_input"
-                ? "bg-white text-emerald-900 shadow-xs font-bold"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Input Nilai Harian (Formatif)
+            <Calendar className="w-3.5 h-3.5" />
+            <span>Input Nilai Harian (Formatif)</span>
           </button>
           <button
-            onClick={() => setActiveTab("matrix_input")}
-            className={`px-3.5 py-1.5 rounded-lg transition-all ${
-              activeTab === "matrix_input"
-                ? "bg-white text-emerald-900 shadow-xs font-bold"
+            onClick={() => setActiveTab("rekap")}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === "rekap"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            Input Matrix Nilai TP & Sumatif
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>Leger & Deskripsi Raport</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("remedial_dashboard")}
+            className={`px-3.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === "remedial_dashboard"
+                ? "bg-emerald-600 text-white shadow-xs font-bold"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <PieChartIcon className="w-3.5 h-3.5" />
+            <span>Ketuntasan & Remedial</span>
           </button>
         </div>
       </div>
 
-      {/* Filter Bar & KKM Controls (Shown for rekap, daily_input, matrix_input) */}
+      {/* Filter Bar, Subject Chips & KKM Controls (Shown for matrix_input, daily_input, and rekap) */}
       {activeTab !== "remedial_dashboard" && (
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {subjects.map((sub) => (
-              <button
-                key={sub}
-                onClick={() => setSelectedSubject(sub)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  selectedSubject === sub
-                    ? "bg-emerald-600 text-white font-bold shadow-xs"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {sub}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex items-center space-x-3 text-xs">
-            <div className="flex items-center space-x-1.5 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 text-amber-900 font-bold">
-              <span>KKM Mapel:</span>
-              <input
-                type="number"
-                value={kkmValue}
-                onChange={(e) => setKkmValue(parseInt(e.target.value, 10) || 75)}
-                className="w-12 p-0.5 border border-amber-300 text-center rounded bg-white text-xs font-extrabold"
-              />
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+          {/* Row 1: Subject Chips */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-500 mr-1 flex items-center gap-1">
+                <BookOpen className="w-3.5 h-3.5" />
+                Mapel:
+              </span>
+              {subjects.map((sub) => (
+                <button
+                  key={sub}
+                  onClick={() => setSelectedSubject(sub)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedSubject === sub
+                      ? "bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-400/40"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  {sub}
+                </button>
+              ))}
             </div>
 
-            <button
-              onClick={() => exportGradesToExcel(students, dailyGrades, grades, subjects)}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
-              title="Ekspor ke Excel (.xlsx)"
-            >
-              <Download className="w-4 h-4 text-emerald-100" />
-              Ekspor Excel (.xlsx)
-            </button>
-            <button
-              onClick={handleExportDoc}
-              className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-semibold rounded-xl flex items-center gap-1.5 transition-colors"
-              title="Simpan Word (.docx)"
-            >
-              <FileText className="w-4 h-4 text-blue-600" />
-              Simpan Word (.docx)
-            </button>
-            <button
-              onClick={handlePrint}
-              className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl border border-slate-300 flex items-center gap-1.5"
-            >
-              <Printer className="w-4 h-4" />
-              Cetak
-            </button>
+            {/* KKM Input & Quick Actions */}
+            <div className="flex items-center space-x-2 text-xs">
+              <div className="flex items-center space-x-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-amber-900 font-bold">
+                <span>KKM Mapel:</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={kkmValue}
+                  onChange={(e) => setKkmValue(parseInt(e.target.value, 10) || 75)}
+                  className="w-12 p-0.5 border border-amber-300 text-center rounded-lg bg-white text-xs font-extrabold focus:ring-1 focus:ring-amber-500 outline-none"
+                />
+              </div>
+
+              <button
+                onClick={() => exportGradesToExcel(students, dailyGrades, grades, subjects)}
+                className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Ekspor Seluruh Nilai ke Excel (.xlsx)"
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                Excel (.xlsx)
+              </button>
+              <button
+                onClick={handleExportDoc}
+                className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Simpan Format Word (.docx)"
+              >
+                <FileText className="w-4 h-4 text-blue-600" />
+                Word (.docx)
+              </button>
+              <button
+                onClick={handlePrint}
+                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl border border-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Printer className="w-4 h-4 text-slate-600" />
+                Cetak
+              </button>
+            </div>
+          </div>
+
+          {/* Row 2: Search, Filter & Spreadsheet Action Tools (When in matrix_input) */}
+          {activeTab === "matrix_input" && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-0.5">
+              <div className="flex items-center gap-2 flex-1 min-w-[260px] max-w-md">
+                <div className="relative w-full">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari siswa berdasarkan nama atau NISN..."
+                    className="w-full pl-9 pr-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="px-2.5 py-1.5 text-xs font-semibold border border-slate-300 rounded-xl bg-white text-slate-700 outline-none"
+                >
+                  <option value="all">Semua Siswa ({students.length})</option>
+                  <option value="remedial">Perlu Remedial (&lt; KKM)</option>
+                  <option value="incomplete">Belum Lengkap</option>
+                </select>
+              </div>
+
+              {/* Table Quick Tools */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsExcelModalOpen(true)}
+                  className="px-3.5 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                  title="Salin & Tempel Nilai dari Excel / Google Sheets"
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Tempel Nilai Excel</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsQuickFillOpen(true)}
+                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Isi Nilai Kolom Serentak atau KKM"
+                >
+                  <Zap className="w-4 h-4 text-amber-600" />
+                  <span>Isi Cepat Kolom</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Alert Notification */}
+      {savedAlert && (
+        <div className="bg-emerald-50 text-emerald-800 border border-emerald-300 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
+          <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{savedAlertMessage}</span>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* TAB 1: SPREADSHEET TABLE INPUT NILAI (FORMATIF & SUMATIF)                 */}
+      {/* ========================================================================= */}
+      {activeTab === "matrix_input" && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          {/* Table Header Bar */}
+          <div className="p-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50/50">
+            <div>
+              <div className="flex items-center gap-2">
+                <TableIcon className="w-4 h-4 text-emerald-600" />
+                <h3 className="font-bold text-sm text-slate-900">
+                  Tabel Entri Nilai Formatif TP, STS, & SAS — {selectedSubject}
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Ketik langsung nilai pada tabel. Tekan <kbd className="px-1.5 py-0.5 bg-slate-200 rounded font-mono text-[10px] font-bold">Enter</kbd> untuk pindah ke siswa berikutnya, atau gunakan panah <kbd className="px-1.5 py-0.5 bg-slate-200 rounded font-mono text-[10px] font-bold">↑ ↓</kbd>.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+              <span className="flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>
+                <span>≥ KKM ({kkmValue})</span>
+              </span>
+              <span className="flex items-center gap-1 ml-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+                <span>&lt; KKM (Remedial)</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Spreadsheet Continuous Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse border border-slate-200">
+              <thead className="bg-slate-100 font-bold border-b border-slate-300 text-slate-800 uppercase tracking-wider text-[11px] select-none sticky top-0 z-10 shadow-xs">
+                <tr>
+                  <th className="px-3 py-3 text-center w-12 border-r border-slate-300">No</th>
+                  <th className="px-4 py-3 min-w-[200px] border-r border-slate-300">Nama Siswa</th>
+                  {tpList.map((t, colIdx) => (
+                    <th
+                      key={t.code}
+                      className="px-2 py-2.5 text-center min-w-[70px] border-r border-slate-300 bg-emerald-50/40 text-emerald-950 group relative"
+                      title={`${t.code}: ${t.desc}`}
+                    >
+                      <div className="flex flex-col items-center">
+                        <span className="font-extrabold">{t.code}</span>
+                        <span className="text-[9px] font-normal text-slate-500 lowercase truncate max-w-[65px]">
+                          {t.desc.slice(0, 10)}...
+                        </span>
+                      </div>
+                    </th>
+                  ))}
+                  <th className="px-2 py-2.5 text-center w-20 border-r border-slate-300 bg-emerald-100/50 text-emerald-900">
+                    Rerata TP
+                  </th>
+                  <th className="px-2 py-2.5 text-center min-w-[75px] border-r border-slate-300 bg-amber-100/40 text-amber-950">
+                    STS (Mid)
+                  </th>
+                  <th className="px-2 py-2.5 text-center min-w-[75px] border-r border-slate-300 bg-purple-100/40 text-purple-950">
+                    SAS (Final)
+                  </th>
+                  <th className="px-3 py-2.5 text-center w-16 border-r border-slate-300 bg-emerald-600 text-white font-extrabold">
+                    NA
+                  </th>
+                  <th className="px-3 py-2.5 text-center min-w-[100px]">Predikat & Ketuntasan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {filteredStudents.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={tpList.length + 6}
+                      className="px-4 py-10 text-center text-slate-400 text-xs"
+                    >
+                      Tidak ada data siswa yang cocok dengan pencarian / filter.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredStudents.map((student, rowIdx) => {
+                    const stats = calculateStudentStats(student);
+                    return (
+                      <tr
+                        key={student.id}
+                        className="hover:bg-emerald-50/30 transition-colors focus-within:bg-emerald-50/50"
+                      >
+                        {/* No */}
+                        <td className="px-2 py-2 text-center text-slate-400 font-mono border-r border-slate-200 font-semibold">
+                          {rowIdx + 1}
+                        </td>
+
+                        {/* Student Name */}
+                        <td className="px-4 py-2 font-bold text-slate-900 border-r border-slate-200">
+                          <div>{student.name}</div>
+                          <div className="text-[10px] text-slate-400 font-mono font-normal">
+                            NIS: {student.nis || "-"} | NISN: {student.nisn || "-"}
+                          </div>
+                        </td>
+
+                        {/* TP Score Cells */}
+                        {tpList.map((t, colIdx) => {
+                          const val = stats.record.tpScores[t.code];
+                          const hasVal = typeof val === "number" && !isNaN(val);
+                          const isPass = hasVal && val >= kkmValue;
+                          const isRem = hasVal && val < kkmValue;
+
+                          return (
+                            <td
+                              key={t.code}
+                              className={`p-0 text-center border-r border-slate-200 transition-colors ${
+                                isRem ? "bg-rose-50/60" : isPass ? "bg-emerald-50/20" : ""
+                              }`}
+                            >
+                              <input
+                                id={`cell_${rowIdx}_${colIdx}`}
+                                type="number"
+                                min={0}
+                                max={100}
+                                placeholder="-"
+                                value={hasVal ? val : ""}
+                                onFocus={(e) => e.target.select()}
+                                onKeyDown={(e) => handleCellKeyDown(e, rowIdx, colIdx)}
+                                onPaste={(e) => handleCellPaste(e, rowIdx, colIdx)}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  handleScoreChange(
+                                    student.id,
+                                    "tp",
+                                    t.code,
+                                    raw === "" ? undefined : parseInt(raw, 10)
+                                  );
+                                }}
+                                className={`w-full h-10 text-center font-mono font-bold text-xs bg-transparent border-0 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-emerald-100/60 transition-all ${
+                                  isRem
+                                    ? "text-rose-600 font-extrabold"
+                                    : isPass
+                                    ? "text-emerald-800 font-extrabold"
+                                    : "text-slate-700"
+                                }`}
+                              />
+                            </td>
+                          );
+                        })}
+
+                        {/* Average TP (Calculated) */}
+                        <td className="px-2 py-2 text-center font-mono font-bold border-r border-slate-200 bg-emerald-50/30 text-emerald-900">
+                          {stats.avgTP > 0 ? stats.avgTP : "-"}
+                        </td>
+
+                        {/* STS (Mid Summative) */}
+                        <td
+                          className={`p-0 text-center border-r border-slate-200 transition-colors ${
+                            stats.record.midSummative !== undefined &&
+                            stats.record.midSummative < kkmValue
+                              ? "bg-rose-50/60"
+                              : "bg-amber-50/20"
+                          }`}
+                        >
+                          <input
+                            id={`cell_${rowIdx}_${tpList.length}`}
+                            type="number"
+                            min={0}
+                            max={100}
+                            placeholder="-"
+                            value={
+                              stats.record.midSummative !== undefined ? stats.record.midSummative : ""
+                            }
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => handleCellKeyDown(e, rowIdx, tpList.length)}
+                            onPaste={(e) => handleCellPaste(e, rowIdx, tpList.length)}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              handleScoreChange(
+                                student.id,
+                                "mid",
+                                null,
+                                raw === "" ? undefined : parseInt(raw, 10)
+                              );
+                            }}
+                            className={`w-full h-10 text-center font-mono font-bold text-xs bg-transparent border-0 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-amber-100/60 transition-all ${
+                              stats.record.midSummative !== undefined &&
+                              stats.record.midSummative < kkmValue
+                                ? "text-rose-600 font-extrabold"
+                                : "text-amber-950 font-extrabold"
+                            }`}
+                          />
+                        </td>
+
+                        {/* SAS (Final Summative) */}
+                        <td
+                          className={`p-0 text-center border-r border-slate-200 transition-colors ${
+                            stats.record.finalSummative !== undefined &&
+                            stats.record.finalSummative < kkmValue
+                              ? "bg-rose-50/60"
+                              : "bg-purple-50/20"
+                          }`}
+                        >
+                          <input
+                            id={`cell_${rowIdx}_${tpList.length + 1}`}
+                            type="number"
+                            min={0}
+                            max={100}
+                            placeholder="-"
+                            value={
+                              stats.record.finalSummative !== undefined
+                                ? stats.record.finalSummative
+                                : ""
+                            }
+                            onFocus={(e) => e.target.select()}
+                            onKeyDown={(e) => handleCellKeyDown(e, rowIdx, tpList.length + 1)}
+                            onPaste={(e) => handleCellPaste(e, rowIdx, tpList.length + 1)}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              handleScoreChange(
+                                student.id,
+                                "final",
+                                null,
+                                raw === "" ? undefined : parseInt(raw, 10)
+                              );
+                            }}
+                            className={`w-full h-10 text-center font-mono font-bold text-xs bg-transparent border-0 outline-none focus:ring-2 focus:ring-purple-500 focus:bg-purple-100/60 transition-all ${
+                              stats.record.finalSummative !== undefined &&
+                              stats.record.finalSummative < kkmValue
+                                ? "text-rose-600 font-extrabold"
+                                : "text-purple-950 font-extrabold"
+                            }`}
+                          />
+                        </td>
+
+                        {/* Nilai Akhir (NA) */}
+                        <td className="px-2 py-2 text-center font-mono font-black text-sm border-r border-slate-200 bg-emerald-100/60 text-emerald-950">
+                          {stats.finalScore > 0 ? stats.finalScore : "-"}
+                        </td>
+
+                        {/* Predikat & Status */}
+                        <td className="px-3 py-2 text-center">
+                          {stats.finalScore > 0 ? (
+                            <span
+                              className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${
+                                stats.finalScore >= kkmValue
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-rose-100 text-rose-800"
+                              }`}
+                            >
+                              {stats.predicate} • {stats.finalScore >= kkmValue ? "Tuntas" : "Remedial"}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 font-mono text-[11px]">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+
+              {/* Table Footer: Class Summary Stats */}
+              <tfoot className="bg-slate-100/90 font-bold text-slate-800 border-t-2 border-slate-300 text-xs select-none">
+                {/* Row 1: Rata-Rata Kelas */}
+                <tr>
+                  <td colSpan={2} className="px-4 py-2 text-right uppercase tracking-wider text-[11px] text-slate-600 border-r border-slate-300">
+                    Rata-Rata Kelas:
+                  </td>
+                  {tpList.map((t) => (
+                    <td
+                      key={t.code}
+                      className="px-2 py-2 text-center font-mono font-bold border-r border-slate-300 bg-emerald-50/50 text-emerald-900"
+                    >
+                      {columnStats[t.code]?.avg || "-"}
+                    </td>
+                  ))}
+                  <td className="px-2 py-2 text-center font-mono font-bold border-r border-slate-300 text-emerald-900">
+                    {columnStats["na"]?.avg || "-"}
+                  </td>
+                  <td className="px-2 py-2 text-center font-mono font-bold border-r border-slate-300 bg-amber-50/60 text-amber-950">
+                    {columnStats["mid"]?.avg || "-"}
+                  </td>
+                  <td className="px-2 py-2 text-center font-mono font-bold border-r border-slate-300 bg-purple-50/60 text-purple-950">
+                    {columnStats["final"]?.avg || "-"}
+                  </td>
+                  <td className="px-2 py-2 text-center font-mono font-extrabold border-r border-slate-300 bg-emerald-200/60 text-emerald-950">
+                    {columnStats["na"]?.avg || "-"}
+                  </td>
+                  <td className="px-3 py-2 text-center text-slate-500 text-[11px]">
+                    KKM: {kkmValue}
+                  </td>
+                </tr>
+
+                {/* Row 2: Ketuntasan Kelas */}
+                <tr className="border-t border-slate-200">
+                  <td colSpan={2} className="px-4 py-1.5 text-right uppercase tracking-wider text-[10px] text-slate-500 border-r border-slate-300">
+                    Ketuntasan (≥ KKM):
+                  </td>
+                  {tpList.map((t) => (
+                    <td
+                      key={t.code}
+                      className="px-1 py-1.5 text-center font-mono text-[11px] border-r border-slate-300 text-emerald-700"
+                    >
+                      {columnStats[t.code]?.passRate ? `${columnStats[t.code].passRate}%` : "-"}
+                    </td>
+                  ))}
+                  <td className="px-1 py-1.5 text-center font-mono text-[11px] border-r border-slate-300 text-slate-400">
+                    -
+                  </td>
+                  <td className="px-1 py-1.5 text-center font-mono text-[11px] border-r border-slate-300 text-amber-800">
+                    {columnStats["mid"]?.passRate ? `${columnStats["mid"].passRate}%` : "-"}
+                  </td>
+                  <td className="px-1 py-1.5 text-center font-mono text-[11px] border-r border-slate-300 text-purple-800">
+                    {columnStats["final"]?.passRate ? `${columnStats["final"].passRate}%` : "-"}
+                  </td>
+                  <td className="px-1 py-1.5 text-center font-mono text-[11px] border-r border-slate-300 font-extrabold text-emerald-900">
+                    {columnStats["na"]?.passRate ? `${columnStats["na"].passRate}%` : "-"}
+                  </td>
+                  <td className="px-2 py-1.5 text-center text-[10px] font-normal text-slate-500">
+                    {columnStats["na"]?.passCount || 0} / {students.length} Siswa Tuntas
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
         </div>
       )}
 
-      {/* TAB 0: DASHBOARD KETUNTASAN & REMEDIAL */}
-      {activeTab === "remedial_dashboard" && (
-        <GradesRemedialDashboard
-          students={students}
-          cptpItems={cptpItems}
-          grades={grades}
-          subjects={subjects}
-          kkmValue={kkmValue}
-          onSetKkmValue={setKkmValue}
-          onOpenPrint={onOpenPrint}
-        />
-      )}
+      {/* ========================================================================= */}
+      {/* TAB 2: INLINE & MASS INPUT PENILAIAN HARIAN (FORMATIF)                     */}
+      {/* ========================================================================= */}
+      {activeTab === "daily_input" && (
+        <div className="space-y-4">
+          {/* Top Selection & Action Bar */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-emerald-600" />
+                  Tabel Entri Penilaian Harian / Formatif ({selectedSubject})
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Pilih Tujuan Pembelajaran (TP) dan tanggal penilaian, lalu isi nilai siswa langsung pada tabel di bawah ini.
+                </p>
+              </div>
 
-      {savedAlert && (
-        <div className="bg-emerald-50 text-emerald-800 border border-emerald-300 p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-fade-in">
-          <Check className="w-4 h-4 text-emerald-600" />
-          Data Nilai Harian berhasil disimpan dan disinkronkan ke Leger Raport!
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newScores: Record<string, number> = {};
+                    students.forEach((s) => (newScores[s.id] = 85));
+                    setInlineDailyScores(newScores);
+                  }}
+                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  ⚡ Isi Semua 85
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newScores: Record<string, number> = {};
+                    students.forEach((s) => (newScores[s.id] = kkmValue));
+                    setInlineDailyScores(newScores);
+                  }}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Tandai KKM ({kkmValue}) Semua
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveInlineDaily}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+                >
+                  <Save className="w-4 h-4" />
+                  Simpan Penilaian Harian
+                </button>
+              </div>
+            </div>
+
+            {/* Selection Form */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="md:col-span-2">
+                <label className="block font-bold text-slate-800 mb-1">
+                  Pilih Tujuan Pembelajaran (TP):
+                </label>
+                <select
+                  value={selectedDailyTP}
+                  onChange={(e) => handleSelectDailyTPChange(e.target.value)}
+                  className="w-full p-2.5 border border-emerald-300 rounded-xl bg-emerald-50/50 font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                >
+                  {tpList.map((t) => (
+                    <option key={t.code} value={t.code}>
+                      [{t.code}] - {t.desc}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-800 mb-1">Tanggal Penilaian:</label>
+                <input
+                  type="date"
+                  value={dailyAssessmentDate}
+                  onChange={(e) => setDailyAssessmentDate(e.target.value)}
+                  className="w-full p-2.5 border border-slate-300 rounded-xl font-mono font-semibold bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Inline Table of Students for Selected TP */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="p-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <span className="font-bold text-xs text-slate-800">
+                Daftar Nilai Siswa untuk [{selectedDailyTP}] ({dailyAssessmentDate})
+              </span>
+              <span className="text-xs text-slate-500">
+                Total {students.length} Siswa Terdaftar
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-slate-100 font-bold border-b border-slate-200 text-slate-800 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-3 py-2.5 text-center w-12 border-r border-slate-200">No</th>
+                    <th className="px-4 py-2.5 w-32 border-r border-slate-200">NIS / NISN</th>
+                    <th className="px-4 py-2.5 border-r border-slate-200">Nama Siswa</th>
+                    <th className="px-4 py-2.5 text-center w-36 border-r border-slate-200">
+                      Nilai Formatif (0 - 100)
+                    </th>
+                    <th className="px-4 py-2.5 text-center w-28">Status KKM</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {students.map((student, idx) => {
+                    const currentScore = inlineDailyScores[student.id];
+                    const hasVal = typeof currentScore === "number" && !isNaN(currentScore);
+                    const isPass = hasVal && currentScore >= kkmValue;
+
+                    return (
+                      <tr key={student.id} className="hover:bg-slate-50">
+                        <td className="px-3 py-2 text-center text-slate-400 font-mono border-r border-slate-100">
+                          {idx + 1}
+                        </td>
+                        <td className="px-4 py-2 font-mono text-slate-500 border-r border-slate-100">
+                          {student.nis || student.nisn || "-"}
+                        </td>
+                        <td className="px-4 py-2 font-bold text-slate-900 border-r border-slate-100">
+                          {student.name}
+                        </td>
+                        <td className="px-4 py-1.5 text-center border-r border-slate-100">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            placeholder="0"
+                            value={hasVal ? currentScore : ""}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const num = parseInt(e.target.value, 10);
+                              setInlineDailyScores((prev) => ({
+                                ...prev,
+                                [student.id]: isNaN(num) ? 0 : Math.min(100, Math.max(0, num)),
+                              }));
+                            }}
+                            className={`w-24 p-1.5 border rounded-xl text-center font-mono font-bold text-xs focus:ring-2 focus:ring-emerald-500 outline-none ${
+                              isPass
+                                ? "border-emerald-300 text-emerald-800 bg-emerald-50/50"
+                                : hasVal
+                                ? "border-rose-300 text-rose-800 bg-rose-50/50"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          {hasVal ? (
+                            <span
+                              className={`px-2 py-0.5 rounded font-bold text-[11px] ${
+                                isPass
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-rose-100 text-rose-800"
+                              }`}
+                            >
+                              {isPass ? "Tuntas" : "Remedial"}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] font-mono">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={handleSaveInlineDaily}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md transition-colors cursor-pointer"
+              >
+                <Save className="w-4 h-4" />
+                Simpan Penilaian Harian & Sinkronkan
+              </button>
+            </div>
+          </div>
+
+          {/* Historical Daily Entries List */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
+            <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wider">
+              Riwayat Penilaian Harian Tersimpan ({selectedSubject})
+            </h4>
+
+            {dailyGrades.filter((g) => g.subject === selectedSubject).length === 0 ? (
+              <div className="text-center py-8 text-slate-400 text-xs">
+                Belum ada riwayat penilaian harian khusus untuk mapel ini. Pilih TP di atas dan simpan nilai siswa!
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-700">
+                  <thead className="bg-slate-50 font-bold border-b border-slate-200 text-slate-800">
+                    <tr>
+                      <th className="px-3 py-2 text-center">Tgl (dd/m)</th>
+                      <th className="px-3 py-2">Kode TP</th>
+                      <th className="px-3 py-2">Jenis Asesmen</th>
+                      <th className="px-3 py-2 text-center">Rata-Rata Kelas</th>
+                      <th className="px-3 py-2 text-center w-36">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {Array.from(
+                      new Set(
+                        dailyGrades
+                          .filter((g) => g.subject === selectedSubject)
+                          .map((g) => `${g.tpCode}_${g.formattedDate || g.date}_${g.assessmentType}`)
+                      )
+                    ).map((groupKey) => {
+                      const [tpCode, dateStr, type] = groupKey.split("_");
+                      const groupItems = dailyGrades.filter(
+                        (g) =>
+                          g.subject === selectedSubject &&
+                          g.tpCode === tpCode &&
+                          (g.formattedDate === dateStr || g.date === dateStr) &&
+                          g.assessmentType === type
+                      );
+                      const avg =
+                        groupItems.length > 0
+                          ? Math.round(groupItems.reduce((a, b) => a + b.score, 0) / groupItems.length)
+                          : 0;
+
+                      return (
+                        <tr key={groupKey} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-3 py-2 text-center font-mono font-bold text-emerald-800 bg-emerald-50/40">
+                            {dateStr}
+                          </td>
+                          <td className="px-3 py-2 font-mono font-bold text-slate-900">{tpCode}</td>
+                          <td className="px-3 py-2 font-semibold text-slate-600">{type}</td>
+                          <td className="px-3 py-2 text-center font-mono font-extrabold text-emerald-700">
+                            {avg}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                onClick={() => handleEditDailyGroupInline(tpCode, dateStr, type)}
+                                className="px-2.5 py-1 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Buka & Edit Nilai di Tabel"
+                              >
+                                <Edit2 className="w-3 h-3 text-emerald-600" />
+                                Edit di Tabel
+                              </button>
+                              <button
+                                onClick={() => handleDeleteDailyGroup(tpCode, dateStr, type)}
+                                className="px-2 py-1 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                title="Hapus Entri Nilai Harian"
+                              >
+                                <Trash2 className="w-3 h-3 text-red-600" />
+                                Hapus
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
-      {/* TAB 1: REKAP LEGER & DESKRIPSI RAPORT */}
+      {/* ========================================================================= */}
+      {/* TAB 3: REKAP LEGER & DESKRIPSI RAPORT                                     */}
+      {/* ========================================================================= */}
       {activeTab === "rekap" && (
         <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden space-y-2">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -627,8 +1587,12 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
                   <th className="px-3 py-3 text-center w-10">No</th>
                   <th className="px-3 py-3">Nama Siswa</th>
                   <th className="px-3 py-3 text-center w-16">TP Rerata</th>
-                  <th className="px-3 py-3 text-center w-24 text-emerald-800 bg-emerald-50/50">TP Tertinggi</th>
-                  <th className="px-3 py-3 text-center w-24 text-red-800 bg-red-50/50">TP Terendah</th>
+                  <th className="px-3 py-3 text-center w-24 text-emerald-800 bg-emerald-50/50">
+                    TP Tertinggi
+                  </th>
+                  <th className="px-3 py-3 text-center w-24 text-red-800 bg-red-50/50">
+                    TP Terendah
+                  </th>
                   <th className="px-3 py-3 text-center w-16">STS</th>
                   <th className="px-3 py-3 text-center w-16">SAS</th>
                   <th className="px-3 py-3 text-center w-16 bg-emerald-100 font-extrabold">NA</th>
@@ -682,326 +1646,38 @@ export const GradesMatrixView: React.FC<GradesMatrixViewProps> = ({
         </div>
       )}
 
-      {/* TAB 2: INPUT NILAI HARIAN / FORMATIF */}
-      {activeTab === "daily_input" && (
-        <div className="space-y-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-sm text-slate-900">Entri Massal Nilai Harian Siswa</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Input nilai per Kode & Deskripsi TP. Setelah disimpan, sistem menampilkan Kode TP, Jenis Asesmen, dan Tanggal (dd/m).
-              </p>
-            </div>
-            <button
-              onClick={handleOpenNewDailyModal}
-              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Input Penilaian Harian Baru
-            </button>
-          </div>
-
-          {/* Historical Daily Entries List */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 space-y-3">
-            <h4 className="font-bold text-xs text-slate-800 uppercase tracking-wider">
-              Riwayat Penilaian Harian Tersimpan ({selectedSubject})
-            </h4>
-
-            {dailyGrades.filter((g) => g.subject === selectedSubject).length === 0 ? (
-              <div className="text-center py-8 text-slate-400 text-xs">
-                Belum ada entri penilaian harian khusus untuk mapel ini. Klik <b>Input Penilaian Harian Baru</b> di atas!
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 font-bold border-b border-slate-200 text-slate-800">
-                    <tr>
-                      <th className="px-3 py-2 text-center">Tgl (dd/m)</th>
-                      <th className="px-3 py-2">Kode TP</th>
-                      <th className="px-3 py-2">Jenis Asesmen</th>
-                      <th className="px-3 py-2 text-center">Rata-Rata Kelas</th>
-                      <th className="px-3 py-2 text-center w-28">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {Array.from(
-                      new Set(
-                        dailyGrades
-                          .filter((g) => g.subject === selectedSubject)
-                          .map((g) => `${g.tpCode}_${g.formattedDate || g.date}_${g.assessmentType}`)
-                      )
-                    ).map((groupKey) => {
-                      const [tpCode, dateStr, type] = groupKey.split("_");
-                      const groupItems = dailyGrades.filter(
-                        (g) =>
-                          g.subject === selectedSubject &&
-                          g.tpCode === tpCode &&
-                          (g.formattedDate === dateStr || g.date === dateStr) &&
-                          g.assessmentType === type
-                      );
-                      const avg =
-                        groupItems.length > 0
-                          ? Math.round(groupItems.reduce((a, b) => a + b.score, 0) / groupItems.length)
-                          : 0;
-
-                      return (
-                        <tr key={groupKey} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-3 py-2 text-center font-mono font-bold text-emerald-800 bg-emerald-50/40">
-                            {dateStr}
-                          </td>
-                          <td className="px-3 py-2 font-mono font-bold text-slate-900">{tpCode}</td>
-                          <td className="px-3 py-2 font-semibold text-slate-600">{type}</td>
-                          <td className="px-3 py-2 text-center font-mono font-extrabold text-emerald-700">{avg}</td>
-                          <td className="px-3 py-2 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button
-                                onClick={() => handleOpenEditDailyGroup(tpCode, dateStr, type)}
-                                className="px-2 py-1 text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
-                                title="Edit Entri Nilai Harian"
-                              >
-                                <Edit2 className="w-3 h-3 text-emerald-600" />
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => handleDeleteDailyGroup(tpCode, dateStr, type)}
-                                className="px-2 py-1 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-colors"
-                                title="Hapus Entri Nilai Harian"
-                              >
-                                <Trash2 className="w-3 h-3 text-red-600" />
-                                Hapus
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* ========================================================================= */}
+      {/* TAB 4: DASHBOARD KETUNTASAN & REMEDIAL                                     */}
+      {/* ========================================================================= */}
+      {activeTab === "remedial_dashboard" && (
+        <GradesRemedialDashboard
+          students={students}
+          cptpItems={cptpItems}
+          grades={grades}
+          subjects={subjects}
+          kkmValue={kkmValue}
+          onSetKkmValue={setKkmValue}
+          onOpenPrint={onOpenPrint}
+        />
       )}
 
-      {/* TAB 3: MATRIX INPUT NILAI TP & SUMATIF */}
-      {activeTab === "matrix_input" && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-bold text-sm text-slate-900">
-              Matrix Input Nilai Formatif TP, STS, & SAS ({selectedSubject})
-            </h3>
-            <p className="text-xs text-slate-500">Perubahan nilai langsung tersimpan ke sistem</p>
-          </div>
+      {/* MODAL: TEMPEL DARI EXCEL */}
+      <ExcelPasteModal
+        isOpen={isExcelModalOpen}
+        onClose={() => setIsExcelModalOpen(false)}
+        students={filteredStudents}
+        tpList={tpList}
+        onApplyGrades={handleApplyExcelGrades}
+      />
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 font-bold border-b border-slate-200 text-slate-800 uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="px-3 py-3 text-center w-10">No</th>
-                  <th className="px-3 py-3">Nama Siswa</th>
-                  {tpList.map((t) => (
-                    <th key={t.code} className="px-3 py-3 text-center w-20">
-                      {t.code}
-                    </th>
-                  ))}
-                  <th className="px-3 py-3 text-center w-20 bg-amber-50 text-amber-900">STS</th>
-                  <th className="px-3 py-3 text-center w-20 bg-purple-50 text-purple-900">SAS</th>
-                  <th className="px-3 py-3 text-center w-20 bg-emerald-100 font-extrabold text-emerald-950">
-                    NA
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {students.map((student, idx) => {
-                  const stats = calculateStudentStats(student);
-                  return (
-                    <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-3 py-2 text-center text-slate-400 font-mono">{idx + 1}</td>
-                      <td className="px-3 py-2 font-bold text-slate-900">{student.name}</td>
-                      {tpList.map((t) => (
-                        <td key={t.code} className="px-2 py-2 text-center">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={stats.record.tpScores[t.code] ?? ""}
-                            onChange={(e) =>
-                              handleScoreChange(student.id, "tp", t.code, parseInt(e.target.value, 10))
-                            }
-                            className="w-14 p-1 border rounded text-center font-mono font-semibold"
-                          />
-                        </td>
-                      ))}
-                      <td className="px-2 py-2 text-center bg-amber-50/40">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={stats.record.midSummative ?? ""}
-                          onChange={(e) =>
-                            handleScoreChange(student.id, "mid", null, parseInt(e.target.value, 10))
-                          }
-                          className="w-14 p-1 border border-amber-300 rounded text-center font-mono font-bold"
-                        />
-                      </td>
-                      <td className="px-2 py-2 text-center bg-purple-50/40">
-                        <input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={stats.record.finalSummative ?? ""}
-                          onChange={(e) =>
-                            handleScoreChange(student.id, "final", null, parseInt(e.target.value, 10))
-                          }
-                          className="w-14 p-1 border border-purple-300 rounded text-center font-mono font-bold"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-center font-extrabold text-emerald-950 bg-emerald-100/80 font-mono text-sm">
-                        {stats.finalScore}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Input Nilai Harian Massal */}
-      {isDailyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-2xl w-full shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-              {editingDailyGroupKey ? (
-                <>
-                  <Edit2 className="w-5 h-5 text-emerald-600" />
-                  Edit Penilaian Harian / Formatif Siswa ({selectedSubject})
-                </>
-              ) : (
-                <>
-                  <Plus className="w-5 h-5 text-emerald-600" />
-                  Input Penilaian Harian Baru ({selectedSubject})
-                </>
-              )}
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-              <div>
-                <label className="block font-semibold mb-1">Mata Pelajaran</label>
-                <input
-                  type="text"
-                  disabled
-                  value={selectedSubject}
-                  className="w-full p-2 border rounded-lg bg-slate-100 font-bold text-slate-700"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-1">Tanggal Input</label>
-                <input
-                  type="date"
-                  value={dailyForm.date}
-                  onChange={(e) => setDailyForm((prev) => ({ ...prev, date: e.target.value }))}
-                  className="w-full p-2 border rounded-lg font-mono font-semibold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-semibold mb-1">Jenis Asesmen</label>
-                <select
-                  value={dailyForm.assessmentType}
-                  onChange={(e) =>
-                    setDailyForm((prev) => ({ ...prev, assessmentType: e.target.value as GradeAssessmentType }))
-                  }
-                  className="w-full p-2 border rounded-lg bg-white font-semibold"
-                >
-                  <option value="Formatif TP">Formatif TP</option>
-                  <option value="Sumatif Lingkup Materi">Sumatif Lingkup Materi</option>
-                  <option value="Sumatif Tengah Semester">Sumatif Tengah Semester (STS)</option>
-                  <option value="Sumatif Akhir Semester">Sumatif Akhir Semester (SAS)</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="text-xs">
-              <label className="block font-semibold mb-1 text-emerald-900">
-                Pilih Tujuan Pembelajaran (TP)
-              </label>
-              <select
-                value={dailyForm.tpCode}
-                onChange={(e) => setDailyForm((prev) => ({ ...prev, tpCode: e.target.value }))}
-                className="w-full p-2.5 border border-emerald-300 rounded-lg bg-emerald-50/60 font-bold text-slate-900"
-              >
-                <option value="">-- Pilih Kode & Deskripsi TP --</option>
-                {tpList.map((t) => (
-                  <option key={t.code} value={t.code}>
-                    [{t.code}] - {t.desc}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Student Scores Table */}
-            {dailyForm.tpCode && (
-              <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 font-bold border-b border-slate-200 text-slate-800">
-                    <tr>
-                      <th className="px-3 py-2 text-center w-10">No</th>
-                      <th className="px-3 py-2">Nama Siswa</th>
-                      <th className="px-3 py-2 text-center w-28">Nilai (0 - 100)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {students.map((student, idx) => (
-                      <tr key={student.id} className="hover:bg-slate-50">
-                        <td className="px-3 py-2 text-center text-slate-400 font-mono">{idx + 1}</td>
-                        <td className="px-3 py-2 font-bold text-slate-900">{student.name}</td>
-                        <td className="px-3 py-2 text-center">
-                          <input
-                            type="number"
-                            min={0}
-                            max={100}
-                            placeholder="0"
-                            value={dailyForm.scores[student.id] ?? ""}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              setDailyForm((prev) => ({
-                                ...prev,
-                                scores: { ...prev.scores, [student.id]: isNaN(val) ? 0 : val },
-                              }));
-                            }}
-                            className="w-20 p-1 border border-slate-300 rounded text-center font-mono font-bold text-emerald-800"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsDailyModalOpen(false)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={!dailyForm.tpCode}
-                onClick={handleSaveDailyForm}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg"
-              >
-                Simpan Penilaian Harian
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* MODAL: ISI CEPAT KOLOM */}
+      <QuickFillModal
+        isOpen={isQuickFillOpen}
+        onClose={() => setIsQuickFillOpen(false)}
+        tpList={tpList}
+        kkmValue={kkmValue}
+        onApplyFill={handleApplyQuickFill}
+      />
     </div>
   );
 };
