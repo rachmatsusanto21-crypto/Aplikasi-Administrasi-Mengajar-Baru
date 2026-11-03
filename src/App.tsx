@@ -600,7 +600,7 @@ export default function App() {
       const res = await fetch("/api/backup/latest");
       if (!res.ok) {
         if (manual) {
-          setSyncMessage("Gagal terhubung ke server cloud backup.");
+          setSyncMessage("Gagal terhubung ke server backup.");
           setTimeout(() => setSyncMessage(null), 4000);
         }
         hasInitialCheckedRef.current = true;
@@ -626,14 +626,14 @@ export default function App() {
             timeStyle: "short",
           });
           const sourceLabel = json.filename ? ` (${json.filename})` : "";
-          setSyncMessage(`✅ Data backup paling akhir berhasil dimuat otomatis: Versi ${formattedTime}${sourceLabel}`);
-          setTimeout(() => setSyncMessage(null), 6000);
+          setSyncMessage(`✅ Data backup paling akhir berhasil dimuat: Versi ${formattedTime}${sourceLabel}`);
+          setTimeout(() => setSyncMessage(null), 5000);
         } else if (manual) {
           setSyncMessage("Data lokal Anda sudah paling baru dan sinkron!");
           setTimeout(() => setSyncMessage(null), 4000);
         }
-      } else if (gasConfig?.webAppUrl) {
-        // Fallback: If server is empty, check Google Drive Web App
+      } else if (manual && gasConfig?.webAppUrl) {
+        // Only check Google Drive when explicitly requested manually (never automatically in the background)
         try {
           const fetchUrl = gasConfig.webAppUrl.includes("?")
             ? `${gasConfig.webAppUrl}&action=listBackups`
@@ -647,20 +647,25 @@ export default function App() {
               const fileData = await fileRes.json();
               if (fileData) {
                 handleRestoreData(fileData, newestDriveBackup.backupDate);
-                setSyncMessage(`✅ Data backup terbaru otomatis dimuat dari Google Drive: ${newestDriveBackup.filename}`);
-                setTimeout(() => setSyncMessage(null), 6000);
+                setSyncMessage(`✅ Data backup terbaru dimuat dari folder 'Administrasi Mengajar': ${newestDriveBackup.filename}`);
+                setTimeout(() => setSyncMessage(null), 5000);
               }
             }
+          } else {
+            setSyncMessage("Belum ada berkas backup di folder Google Drive 'Administrasi Mengajar'.");
+            setTimeout(() => setSyncMessage(null), 4000);
           }
         } catch (driveErr) {
-          console.warn("Drive auto-restore check:", driveErr);
+          console.warn("Drive manual-restore check:", driveErr);
+          setSyncMessage("Gagal terhubung ke Google Drive Web App.");
+          setTimeout(() => setSyncMessage(null), 4000);
         }
       } else if (manual) {
-        setSyncMessage("Belum ada data cadangan tersimpan di server cloud.");
+        setSyncMessage("Belum ada data cadangan tersimpan.");
         setTimeout(() => setSyncMessage(null), 4000);
       }
     } catch (err) {
-      console.warn("Auto restoring cloud backup status:", err);
+      console.warn("Auto restoring backup status:", err);
       if (manual) {
         setSyncMessage("Koneksi jaringan backup terganggu.");
         setTimeout(() => setSyncMessage(null), 4000);
@@ -670,18 +675,9 @@ export default function App() {
     }
   };
 
-  // Run auto-restore immediately on app launch / window focus
+  // Run initial state restore on app launch (strictly local server/storage without triggering GDrive calls)
   useEffect(() => {
     checkAndRestoreLatestCloudData(false);
-
-    const handleFocus = () => {
-      // Re-check on focus only if initial sync has occurred
-      if (hasInitialCheckedRef.current) {
-        checkAndRestoreLatestCloudData(false);
-      }
-    };
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   // Auto-push state changes to server snapshot with safe debounce

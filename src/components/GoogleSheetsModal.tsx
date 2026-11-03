@@ -146,7 +146,7 @@ export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({
       if (onSyncAllData) {
         const success = await onSyncAllData();
         if (success) {
-          setSyncStatus("✅ Seluruh data berhasil tersimpan & tersinkronisasi ke dalam 1 Folder Google Drive (Folder_Backup_dan_Sync_Administrasi_Guru)!");
+          setSyncStatus("✅ Seluruh data berhasil tersimpan & tersinkronisasi ke dalam 1 Folder Google Drive ('Administrasi Mengajar')!");
         } else {
           setSyncStatus("⚠️ Gagal terhubung. Pastikan URL Web App sudah tepat dan hak akses diset ke 'Siapa Saja' (Anyone).");
         }

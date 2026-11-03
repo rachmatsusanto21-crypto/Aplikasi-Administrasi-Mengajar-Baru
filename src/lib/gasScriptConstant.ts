@@ -1,6 +1,10 @@
 export const DEFAULT_GAS_CODE = `/**
  * Google Apps Script - Web App Backend & Cloud Backup Drive untuk Aplikasi Administrasi Guru
  * 
+ * FOLDER UTAMA GOOGLE DRIVE: "Administrasi Mengajar"
+ * Seluruh data cadangan (backup JSON), sinkronisasi tabel Google Spreadsheet, 
+ * dan dokumen administrasi tersimpan rapi dalam 1 folder khusus: "Administrasi Mengajar".
+ * 
  * ==========================================================================================
  * BAGAIMANA MENGATASI ERROR IZIN GOOGLE DRIVE ("DriveApp.getFoldersByName"):
  * 1. Buka editor Google Apps Script.
@@ -12,6 +16,170 @@ export const DEFAULT_GAS_CODE = `/**
  * 7. Setelah itu, klik "Terapkan" (Deploy) -> "Deployment Baru" -> Pilih Jenis "Web App" -> Akses: "Siapa saja" (Anyone) -> Deploy!
  * ==========================================================================================
  */
+
+var PRIMARY_FOLDER_NAME = "Administrasi Mengajar";
+
+/**
+ * Menyimpan ID folder ke ScriptProperties dan UserProperties agar tidak pernah membuat folder ganda
+ */
+function saveBackupFolderId(folderId) {
+  try {
+    PropertiesService.getScriptProperties().setProperty("BACKUP_FOLDER_ID", folderId);
+  } catch(e) {}
+  try {
+    PropertiesService.getUserProperties().setProperty("BACKUP_FOLDER_ID", folderId);
+  } catch(e) {}
+}
+
+/**
+ * Mengambil ID folder yang tersimpan sebelumnya
+ */
+function getSavedBackupFolderId() {
+  var id = null;
+  try {
+    id = PropertiesService.getScriptProperties().getProperty("BACKUP_FOLDER_ID");
+  } catch(e) {}
+  if (!id) {
+    try {
+      id = PropertiesService.getUserProperties().getProperty("BACKUP_FOLDER_ID");
+    } catch(e) {}
+  }
+  return id;
+}
+
+/**
+ * Mendapatkan SATU folder khusus di Google Drive dengan nama "Administrasi Mengajar".
+ * Aturan ketat:
+ * 1. Jika folder sudah ada, SELALU gunakan folder yang ada (TIDAK PERNAH membuat folder baru).
+ * 2. Jika ada folder lama (misal "Folder_Backup_dan_Sync_Administrasi_Guru"), ganti namanya jadi "Administrasi Mengajar" dan pakai kembali.
+ * 3. Hanya buat folder baru jika benar-benar belum pernah ada folder "Administrasi Mengajar" di seluruh Drive.
+ */
+function getBackupFolder(optionalFolderId) {
+  // 1. Jika ID Folder diberikan eksplisit
+  if (optionalFolderId) {
+    try {
+      var fById = DriveApp.getFolderById(String(optionalFolderId).trim());
+      if (fById && !fById.isTrashed()) {
+        saveBackupFolderId(fById.getId());
+        return fById;
+      }
+    } catch(eId) {}
+  }
+
+  // 2. Cek ID folder yang sudah tersimpan di Properties
+  var savedId = getSavedBackupFolderId();
+  if (savedId) {
+    try {
+      var savedFolder = DriveApp.getFolderById(savedId);
+      if (savedFolder && !savedFolder.isTrashed()) {
+        if (savedFolder.getName() !== PRIMARY_FOLDER_NAME) {
+          try { savedFolder.setName(PRIMARY_FOLDER_NAME); } catch(eRename) {}
+        }
+        return savedFolder;
+      }
+    } catch(eSaved) {}
+  }
+
+  // 3. Cek apakah Spreadsheet aktif sudah berada di dalam folder "Administrasi Mengajar"
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ssFile = DriveApp.getFileById(ss.getId());
+    var parents = ssFile.getParents();
+    while (parents.hasNext()) {
+      var parent = parents.next();
+      if (parent.getId() !== DriveApp.getRootFolder().getId()) {
+        if (parent.getName() === PRIMARY_FOLDER_NAME && !parent.isTrashed()) {
+          saveBackupFolderId(parent.getId());
+          return parent;
+        }
+      }
+    }
+  } catch(eParent) {}
+
+  // 4. Cari folder yang sudah ada dengan nama "Administrasi Mengajar" (gunakan yang pertama, JANGAN buat baru)
+  try {
+    var existingFolders = DriveApp.getFoldersByName(PRIMARY_FOLDER_NAME);
+    while (existingFolders.hasNext()) {
+      var existing = existingFolders.next();
+      if (!existing.isTrashed()) {
+        saveBackupFolderId(existing.getId());
+        return existing;
+      }
+    }
+  } catch(eSearch) {}
+
+  // 5. Cek folder nama lama, jika ada langsung ubah namanya jadi "Administrasi Mengajar" agar data lama tidak hilang
+  var legacyNames = [
+    "Folder_Backup_dan_Sync_Administrasi_Guru",
+    "Backup_Administrasi_Guru",
+    "Backup Administrasi Guru",
+    "Administrasi_Guru_Backup"
+  ];
+  for (var i = 0; i < legacyNames.length; i++) {
+    try {
+      var legacyFolders = DriveApp.getFoldersByName(legacyNames[i]);
+      while (legacyFolders.hasNext()) {
+        var legacy = legacyFolders.next();
+        if (!legacy.isTrashed()) {
+          try { legacy.setName(PRIMARY_FOLDER_NAME); } catch(eRen) {}
+          saveBackupFolderId(legacy.getId());
+          return legacy;
+        }
+      }
+    } catch(eLeg) {}
+  }
+
+  // 6. HANYA JIKA BENAR-BENAR BELUM ADA SATU PUN FOLDER, buat 1 folder dan simpan ID-nya permanen
+  var newFolder = DriveApp.createFolder(PRIMARY_FOLDER_NAME);
+  saveBackupFolderId(newFolder.getId());
+  return newFolder;
+}
+
+/**
+ * FUNGSI PEMBERSIH & KONSOLIDASI (Merapikan jika sebelumnya ada folder duplikat)
+ * Mengumpulkan semua file ke dalam 1 folder utama "Administrasi Mengajar" dan menghapus folder duplikat kosong
+ */
+function cleanupDuplicateFolders() {
+  var mainFolder = getBackupFolder();
+  var mainFolderId = mainFolder.getId();
+  var consolidatedFiles = 0;
+  var removedFolders = 0;
+
+  var namesToCheck = [
+    PRIMARY_FOLDER_NAME,
+    "Folder_Backup_dan_Sync_Administrasi_Guru",
+    "Backup_Administrasi_Guru",
+    "Backup Administrasi Guru"
+  ];
+
+  for (var i = 0; i < namesToCheck.length; i++) {
+    try {
+      var folders = DriveApp.getFoldersByName(namesToCheck[i]);
+      while (folders.hasNext()) {
+        var f = folders.next();
+        if (f.getId() !== mainFolderId && !f.isTrashed()) {
+          // Pindahkan file ke folder utama
+          var files = f.getFiles();
+          while (files.hasNext()) {
+            var file = files.next();
+            try {
+              file.moveTo(mainFolder);
+              consolidatedFiles++;
+            } catch(eMove) {}
+          }
+          // Hapus folder duplikat
+          try {
+            f.setTrashed(true);
+            removedFolders++;
+          } catch(eTrash) {}
+        }
+      }
+    } catch(eDup) {}
+  }
+
+  Logger.log("✅ Pembersihan selesai! Dipindahkan: " + consolidatedFiles + " file. Folder duplikat dihapus: " + removedFolders);
+  return { consolidatedFiles: consolidatedFiles, removedFolders: removedFolders, mainFolderUrl: mainFolder.getUrl() };
+}
 
 /**
  * FUNGSI UNTUK MENGAKTIFKAN OTORISASI DRIVEAPP & SPREADSHEETAPP
@@ -27,81 +195,13 @@ function initPermissions() {
   Logger.log("====================================");
   Logger.log("✅ OTORISASI GOOGLE DRIVE BERHASIL!");
   Logger.log("Nama Sheet: " + ss.getName());
-  Logger.log("Folder Backup & Sync Drive: " + folder.getName() + " (ID: " + folder.getId() + ")");
-  Logger.log("Link Folder: " + folder.getUrl());
+  Logger.log("Folder Tunggal Administrasi: " + folder.getName() + " (ID: " + folder.getId() + ")");
+  Logger.log("Link Folder di Google Drive: " + folder.getUrl());
   Logger.log("====================================");
 }
 
 function myFunction() {
   initPermissions();
-}
-
-/**
- * Mendapatkan folder khusus di Google Drive untuk Backup & Sync secara persisten.
- * TIDAK PERNAH membuat folder baru jika folder sudah ada atau pernah dibuat sebelumnya.
- */
-function getBackupFolder(optionalFolderId) {
-  var prop = PropertiesService.getScriptProperties();
-
-  // 1. Jika ID Folder diberikan secara eksplisit melalui parameter/payload
-  if (optionalFolderId) {
-    try {
-      var fById = DriveApp.getFolderById(String(optionalFolderId).trim());
-      if (fById) {
-        prop.setProperty("BACKUP_FOLDER_ID", fById.getId());
-        return fById;
-      }
-    } catch(eId) {}
-  }
-
-  // 2. Cek ID folder yang telah tersimpan di Script Properties
-  var savedFolderId = prop.getProperty("BACKUP_FOLDER_ID");
-  if (savedFolderId) {
-    try {
-      var savedFolder = DriveApp.getFolderById(savedFolderId);
-      if (savedFolder) {
-        return savedFolder;
-      }
-    } catch(eSaved) {}
-  }
-
-  // 3. Cek apakah Spreadsheet aktif sudah berada di dalam folder khusus di Google Drive
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var ssFile = DriveApp.getFileById(ss.getId());
-    var parents = ssFile.getParents();
-    if (parents.hasNext()) {
-      var parent = parents.next();
-      // Pastikan bukan root Drive utama
-      if (parent.getId() !== DriveApp.getRootFolder().getId()) {
-        prop.setProperty("BACKUP_FOLDER_ID", parent.getId());
-        return parent;
-      }
-    }
-  } catch(eParent) {}
-
-  // 4. Cari folder yang sudah ada berdasarkan nama standar (gunakan yang pertama ditemukan, JANGAN buat baru)
-  var candidateNames = [
-    "Folder_Backup_dan_Sync_Administrasi_Guru",
-    "Backup_Administrasi_Guru",
-    "Backup Administrasi Guru",
-    "Administrasi_Guru_Backup"
-  ];
-
-  for (var i = 0; i < candidateNames.length; i++) {
-    var folders = DriveApp.getFoldersByName(candidateNames[i]);
-    if (folders.hasNext()) {
-      var existingFolder = folders.next();
-      prop.setProperty("BACKUP_FOLDER_ID", existingFolder.getId());
-      return existingFolder;
-    }
-  }
-
-  // 5. Hanya jika benar-benar belum ada satu pun folder, buat SATU folder dan kunci ID-nya permanen
-  var defaultName = "Folder_Backup_dan_Sync_Administrasi_Guru";
-  var newFolder = DriveApp.createFolder(defaultName);
-  prop.setProperty("BACKUP_FOLDER_ID", newFolder.getId());
-  return newFolder;
 }
 
 function doGet(e) {
@@ -110,7 +210,7 @@ function doGet(e) {
     var action = e && e.parameter ? e.parameter.action : null;
     var folderId = e && e.parameter ? e.parameter.folderId : null;
 
-    // 1. List backup files in 1 Google Drive Backup & Sync folder
+    // 1. List backup files in the 1 unified "Administrasi Mengajar" Google Drive folder
     if (action === 'listBackups') {
       var folder = getBackupFolder(folderId);
       var files = folder.getFiles();
@@ -148,15 +248,14 @@ function doGet(e) {
 
     // 3. Delete specific backup file(s) from Google Drive
     if (action === 'deleteBackup') {
-      var fileId = e.parameter.fileId;
-      var folder = getBackupFolder(folderId);
-      if (fileId) {
+      var delFileId = e.parameter.fileId;
+      if (delFileId) {
         try {
-          var file = DriveApp.getFileById(fileId);
-          file.setTrashed(true);
+          var delFile = DriveApp.getFileById(delFileId);
+          delFile.setTrashed(true);
           return ContentService.createTextOutput(JSON.stringify({
             status: "success",
-            message: "File backup '" + file.getName() + "' berhasil dihapus dari Google Drive!"
+            message: "File backup '" + delFile.getName() + "' berhasil dihapus dari folder Google Drive!"
           })).setMimeType(ContentService.MimeType.JSON);
         } catch (errDel) {
           return ContentService.createTextOutput(JSON.stringify({
@@ -167,12 +266,22 @@ function doGet(e) {
       }
     }
 
-    // 4. Status Check / Ping
+    // 4. Bersihkan duplikat folder Google Drive yang sempat terbuat sebelumnya
+    if (action === 'cleanupDuplicates') {
+      var resCleanup = cleanupDuplicateFolders();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Berhasil membersihkan duplikat folder! Seluruh berkas kini rapi di 1 folder 'Administrasi Mengajar'.",
+        details: resCleanup
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 5. Status Check / Ping
     var checkFolder = getBackupFolder(folderId);
     return ContentService.createTextOutput(JSON.stringify({ 
       status: "success", 
-      message: "Web App Administrasi Guru & Drive Backup Aktif dalam 1 Folder!",
-      version: "3.1-drive-unified-folder",
+      message: "Web App Administrasi Guru Aktif dalam 1 Folder Google Drive ('" + checkFolder.getName() + "')!",
+      version: "4.0-administrasi-mengajar",
       folderName: checkFolder.getName(),
       folderUrl: checkFolder.getUrl(),
       folderId: checkFolder.getId(),
@@ -205,13 +314,13 @@ function doPost(e) {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var folder = getBackupFolder(explicitFolderId);
 
-    // Move Active Spreadsheet into the 1 unified folder if not already inside
+    // Pastikan Spreadsheet aktif berada di dalam folder "Administrasi Mengajar"
     try {
       var ssFile = DriveApp.getFileById(ss.getId());
       ssFile.moveTo(folder);
     } catch(eMove) {}
 
-    // 1. Save Backup JSON to Google Drive Folder
+    // 1. Simpan File Backup JSON ke dalam 1 Folder "Administrasi Mengajar"
     if (action === 'uploadBackup' || action === 'uploadCloud' || payload.targetType === 'gdrive' || payload.backupDate || payload.data) {
       var schoolName = payload.schoolName || (payload.data && payload.data.schoolIdentity ? payload.data.schoolIdentity.schoolName : "Sekolah");
       var cleanSchoolName = String(schoolName).replace(/[^a-zA-Z0-9]/g, "_");
@@ -225,7 +334,7 @@ function doPost(e) {
 
       return ContentService.createTextOutput(JSON.stringify({ 
         status: "success", 
-        message: "File backup '" + file.getName() + "' berhasil disimpan dalam 1 Folder Google Drive: " + folder.getName(),
+        message: "File backup '" + file.getName() + "' tersimpan di folder Google Drive: " + folder.getName(),
         fileId: file.getId(),
         filename: file.getName(),
         folderName: folder.getName(),
@@ -233,7 +342,7 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 2. Sync all tables to Google Sheet tabs inside the 1 unified folder
+    // 2. Sinkronkan semua tabel sheet ke Google Spreadsheet di dalam folder "Administrasi Mengajar"
     if (action === 'syncAll' && payload.data) {
       var allData = payload.data;
 
@@ -261,9 +370,9 @@ function doPost(e) {
         }
       });
 
-      // Also create/update auto-snapshot in the same Google Drive folder
+      // Update file auto-sync snapshot di dalam folder "Administrasi Mengajar"
       try {
-        var autoFileName = "AutoSync_Administrasi_Guru_" + new Date().toISOString().substring(0, 10) + ".json";
+        var autoFileName = "AutoSync_Administrasi_Guru_Latest.json";
         var existingFiles = folder.getFilesByName(autoFileName);
         if (existingFiles.hasNext()) {
           var oldFile = existingFiles.next();
@@ -275,13 +384,13 @@ function doPost(e) {
 
       return ContentService.createTextOutput(JSON.stringify({ 
         status: "success", 
-        message: "Seluruh data modul & sheet berhasil disinkronkan ke dalam 1 Folder Google Drive ('" + folder.getName() + "')!",
+        message: "Seluruh data modul & sheet berhasil disinkronkan ke dalam folder Google Drive: " + folder.getName(),
         folderName: folder.getName(),
         folderUrl: folder.getUrl()
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 3. Delete backup file(s) from Google Drive
+    // 3. Hapus file backup dari folder Google Drive
     if (action === 'deleteBackup') {
       var fileIds = payload.fileIds || (payload.fileId ? [payload.fileId] : []);
       var deletedCount = 0;
@@ -296,11 +405,21 @@ function doPost(e) {
       }
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: deletedCount + " file backup berhasil dihapus dari Google Drive!"
+        message: deletedCount + " file backup berhasil dihapus dari folder Google Drive!"
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 4. Create Google Doc file from HTML content inside the same 1 folder
+    // 4. Bersihkan duplikat folder Google Drive
+    if (action === 'cleanupDuplicates') {
+      var cleanupResult = cleanupDuplicateFolders();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "success",
+        message: "Pembersihan duplikat folder selesai!",
+        details: cleanupResult
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 5. Buat file Google Doc dari konten HTML di dalam folder "Administrasi Mengajar"
     if (action === 'createGoogleDoc') {
       var docTitle = payload.title || "Dokumen_Administrasi_Guru";
       var htmlContent = payload.htmlContent || payload.content || "";
@@ -309,7 +428,7 @@ function doPost(e) {
 
       return ContentService.createTextOutput(JSON.stringify({
         status: "success",
-        message: "Dokumen berhasil disimpan di 1 Folder Google Drive: " + folder.getName(),
+        message: "Dokumen berhasil disimpan di folder Google Drive: " + folder.getName(),
         fileId: docFile.getId(),
         docUrl: "https://docs.google.com/document/d/" + docFile.getId() + "/edit",
         driveUrl: docFile.getUrl(),

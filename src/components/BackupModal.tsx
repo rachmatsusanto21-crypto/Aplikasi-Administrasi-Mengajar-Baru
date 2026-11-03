@@ -66,9 +66,12 @@ export const BackupModal: React.FC<BackupModalProps> = ({
   const [activeTab, setActiveTab] = useState<"server" | "cloud" | "guide">("server");
   const [serverBackups, setServerBackups] = useState<ServerBackupItem[]>([]);
   const [cloudBackups, setCloudBackups] = useState<CloudBackupItem[]>([]);
+  const [cloudFolderUrl, setCloudFolderUrl] = useState<string>("");
+  const [cloudFolderName, setCloudFolderName] = useState<string>("Administrasi Mengajar");
   const [selectedCloudIds, setSelectedCloudIds] = useState<string[]>([]);
   const [confirmDeleteCloudIds, setConfirmDeleteCloudIds] = useState<string[] | null>(null);
   const [isDeletingCloud, setIsDeletingCloud] = useState(false);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [loadingServerList, setLoadingServerList] = useState(false);
   const [loadingCloudList, setLoadingCloudList] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -161,9 +164,11 @@ Di editor Google Apps Script:
 
       if (json && json.status === "success" && Array.isArray(json.backups)) {
         setCloudBackups(json.backups);
+        if (json.folderUrl) setCloudFolderUrl(json.folderUrl);
+        if (json.folderName) setCloudFolderName(json.folderName);
         setActionMessage({
           type: "success",
-          text: `✅ Ditemukan ${json.backups.length} file backup di 1 folder Google Drive (${json.folderName || "Folder_Backup_dan_Sync_Administrasi_Guru"}).`,
+          text: `✅ Ditemukan ${json.backups.length} file backup di 1 folder Google Drive: "${json.folderName || "Administrasi Mengajar"}".`,
         });
       } else if (
         json &&
@@ -650,6 +655,36 @@ Di editor Google Apps Script:
     }
   };
 
+  // 7c. Consolidate and clean duplicate folders in Google Drive
+  const handleCleanupDuplicates = async () => {
+    if (!webAppUrl) return;
+    setIsCleaningDuplicates(true);
+    setActionMessage(null);
+    try {
+      const res = await fetch(`${webAppUrl}?action=cleanupDuplicates`);
+      const json = await res.json();
+      if (json.status === "success") {
+        setActionMessage({
+          type: "success",
+          text: `✅ ${json.message || "Pembersihan selesai! Semua file disatukan ke folder 'Administrasi Mengajar'."}`,
+        });
+        fetchCloudBackups();
+      } else {
+        setActionMessage({
+          type: "error",
+          text: `Gagal membersihkan duplikat: ${json.message || "Respon error"}`,
+        });
+      }
+    } catch (err: any) {
+      setActionMessage({
+        type: "error",
+        text: `Gagal membersihkan duplikat folder: ${err.message || err}`,
+      });
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  };
+
   // 8. Download direct local JSON backup file to browser downloads
   const handleDownloadDirectJson = () => {
     const backupPayload = {
@@ -673,7 +708,7 @@ Di editor Google Apps Script:
             <div>
               <h3 className="font-bold text-base sm:text-lg tracking-tight">Pusat & Folder Backup Aplikasi</h3>
               <p className="text-xs text-emerald-200">
-                Folder Cadangan Khusus Lokal Server & Integrasi Cloud Google Drive
+                1 Folder Khusus Google Drive: "Administrasi Mengajar" & Cadangan Lokal
               </p>
             </div>
           </div>
@@ -711,7 +746,7 @@ Di editor Google Apps Script:
             }`}
           >
             <Cloud className="w-4 h-4 text-indigo-600" />
-            <span>Cloud Google Drive Folder</span>
+            <span>Google Drive (Administrasi Mengajar)</span>
             <span className="ml-1 px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 text-[10px]">
               {cloudBackups.length}
             </span>
@@ -900,10 +935,10 @@ Di editor Google Apps Script:
                   <div>
                     <span className="font-bold text-indigo-950 dark:text-indigo-200 text-sm block flex items-center gap-2">
                       <Cloud className="w-4 h-4 text-indigo-600" />
-                      Google Drive Folder (1 Tempat Backup & Sync): <code className="bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded">Folder_Backup_dan_Sync_Administrasi_Guru</code>
+                      Google Drive: 1 Folder Khusus: <code className="bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded font-bold">{cloudFolderName || "Administrasi Mengajar"}</code>
                     </span>
                     <span className="text-xs text-slate-600 dark:text-slate-400">
-                      Tersambung langsung ke penyimpanan Google Drive akun Anda secara otomatis.
+                      Seluruh berkas cadangan dan data sinkronisasi tersimpan permanen dalam 1 folder ini tanpa membuat folder ganda.
                     </span>
                   </div>
 
@@ -924,6 +959,28 @@ Di editor Google Apps Script:
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${loadingCloudList ? "animate-spin" : ""}`} />
                       Muat Ulang Berkas Cloud
+                    </button>
+
+                    {cloudFolderUrl && (
+                      <a
+                        href={cloudFolderUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-100 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-colors"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                        Buka Folder di Drive
+                      </a>
+                    )}
+
+                    <button
+                      onClick={handleCleanupDuplicates}
+                      disabled={isCleaningDuplicates || !webAppUrl}
+                      className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-colors"
+                      title="Satukan file dan bersihkan folder duplikat jika pernah terbuat sebelumnya"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isCleaningDuplicates ? "animate-spin text-indigo-600" : ""}`} />
+                      Bersihkan Duplikat Folder
                     </button>
                   </div>
                 </div>
